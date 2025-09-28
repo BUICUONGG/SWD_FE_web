@@ -14,6 +14,7 @@ import {
   Col,
   Progress,
   List,
+  Dropdown,
 } from "antd";
 import {
   DashboardOutlined,
@@ -27,6 +28,10 @@ import {
   SafetyOutlined,
   EnvironmentOutlined,
   LogoutOutlined,
+  EditOutlined,
+  DownOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 
 const { Sider, Content, Header } = Layout;
@@ -855,6 +860,25 @@ const AdminDashboard: React.FC = () => {
     console.log("Đăng xuất");
   };
 
+  const handleProfileEdit = () => {
+    console.log('Chỉnh sửa profile');
+  };
+
+  const userMenuItems = [
+    {
+      key: 'profile',
+      label: 'Profile',
+      icon: <EditOutlined />,
+      onClick: handleProfileEdit,
+    },
+    {
+      key: 'logout',
+      label: 'Đăng xuất',
+      icon: <LogoutOutlined />,
+      onClick: handleLogout,
+    },
+  ];
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       {/* Sidebar */}
@@ -864,18 +888,29 @@ const AdminDashboard: React.FC = () => {
         onCollapse={setCollapsed}
         theme="dark"
         width={250}
+        collapsedWidth={80}
+        trigger={null}
         style={{
           background: "#001529",
+          height: "100vh",
+          position: "fixed",
+          left: 0,
+          display: "flex",
+          flexDirection: "column",
+          transition: "all 0.2s ease-in-out",
+          zIndex: 1000,
         }}
       >
-        {/* Logo */}
+        {/* Logo với Toggle Button */}
         <div
           style={{
-            height: "64px",
+            height: "48px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: collapsed ? "center" : "space-between",
             borderBottom: "1px solid #1f2937",
+            padding: "0 16px",
+            transition: "all 0.2s ease-in-out",
           }}
         >
           <Title
@@ -884,97 +919,155 @@ const AdminDashboard: React.FC = () => {
               color: "#fff",
               margin: 0,
               display: collapsed ? "none" : "block",
+              transition: "opacity 0.2s ease-in-out",
             }}
           >
             Admin Panel
           </Title>
           {collapsed && (
             <div
-              style={{ color: "#fff", fontSize: "20px", fontWeight: "bold" }}
+              style={{ 
+                color: "#fff", 
+                fontSize: "20px", 
+                fontWeight: "bold",
+                transition: "all 0.2s ease-in-out",
+              }}
             >
               A
             </div>
           )}
+          {/* Custom Toggle Button */}
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+            style={{
+              color: "#fff",
+              border: "none",
+              background: "transparent",
+              transition: "all 0.2s ease-in-out",
+            }}
+          />
         </div>
 
-        {/* Menu */}
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          onClick={({ key }) => setSelectedKey(key)}
-          style={{ borderRight: 0 }}
-        >
-          {menuItems.map((item) => (
-            <Menu.Item key={item.key} icon={item.icon}>
-              {item.label}
-            </Menu.Item>
-          ))}
-        </Menu>
+        {/* Menu - Scrollable */}
+        <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[selectedKey]}
+            onClick={({ key }) => setSelectedKey(key)}
+            style={{ 
+              borderRight: 0,
+              background: "#001529",
+              height: "auto",
+              transition: "all 0.2s ease-in-out",
+            }}
+          >
+            {menuItems.map((item) => (
+              <Menu.Item key={item.key} icon={item.icon} style={{ height: "40px" }}>
+                {item.label}
+              </Menu.Item>
+            ))}
+          </Menu>
+        </div>
 
-        {/* User Profile & Logout at bottom */}
+        {/* User Profile - Fixed at bottom */}
         <div
           style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: "16px",
+            padding: "12px",
             borderTop: "1px solid #1f2937",
             background: "#001529",
+            flexShrink: 0,
+            height: "auto",
+            minHeight: "60px",
           }}
         >
           {!collapsed ? (
-            <Space direction="vertical" style={{ width: "100%" }}>
-              <Space>
-                <Avatar size="small" icon={<UserOutlined />} />
-                <div>
-                  <Text strong style={{ color: "#fff", fontSize: "14px" }}>
-                    Admin User
-                  </Text>
-                  <br />
-                  <Text style={{ color: "#8c8c8c", fontSize: "12px" }}>
-                    Quản trị viên
-                  </Text>
-                </div>
-              </Space>
-              <Button
-                type="text"
-                icon={<LogoutOutlined />}
-                onClick={handleLogout}
-                style={{
-                  color: "#8c8c8c",
-                  width: "100%",
-                  justifyContent: "flex-start",
-                  padding: "4px 0",
-                }}
+            <Dropdown
+              menu={{
+                items: userMenuItems,
+                onClick: ({ key }) => {
+                  const item = userMenuItems.find(item => item.key === key);
+                  item?.onClick?.();
+                }
+              }}
+              placement="top"
+              trigger={['click']}
+            >
+              <div style={{ 
+                cursor: 'pointer', 
+                width: '100%',
+                padding: '4px',
+                borderRadius: '6px',
+                transition: 'all 0.2s ease-in-out',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
               >
-                Đăng xuất
-              </Button>
-            </Space>
+                <Space style={{ width: '100%', alignItems: 'center' }}>
+                  <Avatar size="small" icon={<UserOutlined />} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div>
+                      <Text strong style={{ color: "#fff", fontSize: "13px" }}>
+                        Admin User
+                      </Text>
+                    </div>
+                    <div>
+                      <Text style={{ color: "#8c8c8c", fontSize: "11px" }}>
+                        Quản trị viên
+                      </Text>
+                    </div>
+                  </div>
+                  <DownOutlined style={{ color: "#8c8c8c", fontSize: "10px" }} />
+                </Space>
+              </div>
+            </Dropdown>
           ) : (
-            <div style={{ textAlign: "center" }}>
-              <Avatar
-                size="small"
-                icon={<UserOutlined />}
-                style={{ marginBottom: 8 }}
-              />
-              <Button
-                type="text"
-                icon={<LogoutOutlined />}
-                onClick={handleLogout}
-                style={{
-                  color: "#8c8c8c",
-                  padding: "4px",
-                }}
-              />
-            </div>
+            <Dropdown
+              menu={{
+                items: userMenuItems,
+                onClick: ({ key }) => {
+                  const item = userMenuItems.find(item => item.key === key);
+                  item?.onClick?.();
+                }
+              }}
+              placement="top"
+              trigger={['click']}
+            >
+              <div style={{ 
+                textAlign: "center", 
+                cursor: 'pointer',
+                padding: '8px',
+                borderRadius: '6px',
+                transition: 'all 0.2s ease-in-out',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+              >
+                <Avatar
+                  size="default"
+                  icon={<UserOutlined />}
+                />
+              </div>
+            </Dropdown>
           )}
         </div>
       </Sider>
 
       {/* Main Layout */}
-      <Layout>
+      <Layout style={{ 
+        marginLeft: collapsed ? 80 : 250,
+        transition: "margin-left 0.2s ease-in-out",
+      }}>
         {/* Header */}
         <Header
           style={{
