@@ -3,6 +3,46 @@
   min-height: 100vh;
 }
 
+/* Remove blinking cursor globally */
+* {
+  caret-color: transparent !important;
+}
+
+/* Remove cursor blinking for contenteditable elements */
+[contenteditable] {
+  caret-color: transparent !important;
+}
+
+/* Remove focus outline for better UX */
+*:focus {
+  outline: none !important;
+}
+
+/* Remove cursor for non-interactive elements */
+.ant-menu,
+.ant-menu-item,
+.ant-button,
+.ant-card,
+.ant-table,
+.ant-dropdown,
+div,
+span,
+p {
+  caret-color: transparent !important;
+}
+
+/* Custom focus styles for form elements only */
+input:focus,
+textarea:focus,
+.ant-input:focus,
+.ant-input-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  caret-color: #1890ff !important;
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
 /* Custom Ant Design overrides */
 .ant-layout {
   background: transparent;
