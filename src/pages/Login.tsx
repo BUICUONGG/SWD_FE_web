@@ -4,20 +4,51 @@ import { UserOutlined, LockOutlined, GoogleOutlined, FacebookOutlined } from '@a
 
 const { Title, Paragraph } = Typography;
 
-const LoginPage: React.FC = () => {
-  const [loading, setLoading] = useState(false);
+interface LoginPageProps {
+  onAdminLogin?: () => void;
+  onStudentLogin?: () => void;
+}
 
+const LoginPage: React.FC<LoginPageProps> = ({ onAdminLogin, onStudentLogin }) => {
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Login với username/password (Admin)
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      message.success('Đăng nhập thành công!');
-      console.log('Login values:', values);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      message.success('Đăng nhập Admin thành công!');
+      console.log('Admin login values:', values);
+      
+      // Chuyển đến trang Admin Dashboard
+      if (onAdminLogin) {
+        onAdminLogin();
+      }
     } catch (error) {
       message.error('Đăng nhập thất bại!');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Login với Google (Student)
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      // Simulate Google OAuth
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      message.success('Đăng nhập sinh viên thành công!');
+      
+      // Chuyển đến trang Student Dashboard
+      if (onStudentLogin) {
+        onStudentLogin();
+      }
+    } catch (error) {
+      message.error('Đăng nhập Google thất bại!');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -124,6 +155,8 @@ const LoginPage: React.FC = () => {
             block 
             size="large"
             icon={<GoogleOutlined />}
+            loading={googleLoading}
+            onClick={handleGoogleLogin}
             style={{ 
               height: '48px',
               borderRadius: '6px',
@@ -132,7 +165,7 @@ const LoginPage: React.FC = () => {
               justifyContent: 'center'
             }}
           >
-            Đăng nhập với Google
+            {googleLoading ? 'Đang đăng nhập...' : 'Đăng nhập sinh viên (Google)'}
           </Button>
           <Button 
             block 
@@ -152,6 +185,23 @@ const LoginPage: React.FC = () => {
             Đăng nhập với Facebook
           </Button>
         </Space>
+
+        {/* Instructions */}
+        <div style={{ 
+          background: '#f6ffed', 
+          border: '1px solid #b7eb8f',
+          borderRadius: '6px',
+          padding: '12px',
+          marginTop: '16px'
+        }}>
+          <div style={{ fontSize: '14px', color: '#52c41a', fontWeight: 'bold', marginBottom: '8px' }}>
+            💡 Hướng dẫn đăng nhập:
+          </div>
+          <div style={{ fontSize: '13px', color: '#666' }}>
+            • <strong>Admin:</strong> Sử dụng form username/password bên trên<br/>
+            • <strong>Sinh viên:</strong> Nhấn nút "Đăng nhập sinh viên (Google)"
+          </div>
+        </div>
 
         {/* Sign up link */}
         <div style={{ textAlign: 'center', marginTop: '24px' }}>
