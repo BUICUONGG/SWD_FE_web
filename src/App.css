@@ -1,6 +1,7 @@
 /* App styles for Ant Design */
 .App {
   min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
 /* Remove blinking cursor globally */
@@ -38,9 +39,9 @@ textarea:focus,
 .ant-input-focused,
 .ant-select-focused .ant-select-selector,
 .ant-picker-focused {
-  caret-color: #1890ff !important;
-  border-color: #1890ff !important;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+  caret-color: #667eea !important;
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
 }
 
 /* Custom Ant Design overrides */
@@ -51,11 +52,66 @@ textarea:focus,
 .ant-card-hoverable:hover {
   transform: translateY(-2px);
   transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+/* Header specific styles */
+.header-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Custom hover effects */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+
+/* Content area styling */
+.content-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+}
+
+/* Animation keyframes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
 }
 
 /* Responsive utilities */
 @media (max-width: 768px) {
   .hidden {
+    display: none !important;
+  }
+  
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .desktop-nav {
     display: none !important;
   }
 }
@@ -64,4 +120,31 @@ textarea:focus,
   .md\\:flex {
     display: flex !important;
   }
+  
+  .desktop-nav {
+    display: block !important;
+  }
+  
+  .mobile-menu-btn {
+    display: none !important;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5a6fd8, #6a42a0);
 }

@@ -81,7 +81,7 @@ const HomePage: React.FC = () => {
               <Card
                 hoverable
                 style={{ height: '100%', textAlign: 'center' }}
-                bodyStyle={{ padding: '40px 24px' }}
+                styles={{ body: { padding: '40px 24px' } }}
               >
                 <RocketOutlined style={{ fontSize: '48px', color: '#1890ff', marginBottom: '20px' }} />
                 <Title level={4}>Hiệu suất cao</Title>
@@ -95,9 +95,9 @@ const HomePage: React.FC = () => {
               <Card
                 hoverable
                 style={{ height: '100%', textAlign: 'center' }}
-                bodyStyle={{ padding: '40px 24px' }}
+                styles={{ body: { padding: '40px 24px' } }}
               >
-                <ThunderboltOutlined style={{ fontSize: '48px', color: '#722ed1', marginBottom: '20px' }} />
+                <ThunderboltOutlined style={{ fontSize: '48px', color: '#13c2c2', marginBottom: '20px' }} />
                 <Title level={4}>TypeScript</Title>
                 <Paragraph style={{ color: '#666' }}>
                   Type-safe với TypeScript giúp phát hiện lỗi sớm và nâng cao chất lượng code.
@@ -109,9 +109,9 @@ const HomePage: React.FC = () => {
               <Card
                 hoverable
                 style={{ height: '100%', textAlign: 'center' }}
-                bodyStyle={{ padding: '40px 24px' }}
+                styles={{ body: { padding: '40px 24px' } }}
               >
-                <CrownOutlined style={{ fontSize: '48px', color: '#fa541c', marginBottom: '20px' }} />
+                <CrownOutlined style={{ fontSize: '48px', color: '#fa8c16', marginBottom: '20px' }} />
                 <Title level={4}>UI/UX hiện đại</Title>
                 <Paragraph style={{ color: '#666' }}>
                   Giao diện người dùng đẹp mắt với Ant Design, responsive và thân thiện trên mọi thiết bị.
@@ -123,9 +123,9 @@ const HomePage: React.FC = () => {
               <Card
                 hoverable
                 style={{ height: '100%', textAlign: 'center' }}
-                bodyStyle={{ padding: '40px 24px' }}
+                styles={{ body: { padding: '40px 24px' } }}
               >
-                <ToolOutlined style={{ fontSize: '48px', color: '#13c2c2', marginBottom: '20px' }} />
+                <ToolOutlined style={{ fontSize: '48px', color: '#eb2f96', marginBottom: '20px' }} />
                 <Title level={4}>Dễ dàng tùy chỉnh</Title>
                 <Paragraph style={{ color: '#666' }}>
                   Cấu trúc code rõ ràng, components có thể tái sử dụng và dễ dàng mở rộng.
@@ -137,9 +137,9 @@ const HomePage: React.FC = () => {
               <Card
                 hoverable
                 style={{ height: '100%', textAlign: 'center' }}
-                bodyStyle={{ padding: '40px 24px' }}
+                styles={{ body: { padding: '40px 24px' } }}
               >
-                <SafetyOutlined style={{ fontSize: '48px', color: '#f5222d', marginBottom: '20px' }} />
+                <SafetyOutlined style={{ fontSize: '48px', color: '#52c41a', marginBottom: '20px' }} />
                 <Title level={4}>Bảo mật</Title>
                 <Paragraph style={{ color: '#666' }}>
                   Tích hợp authentication và authorization để bảo vệ dữ liệu người dùng.
@@ -151,9 +151,9 @@ const HomePage: React.FC = () => {
               <Card
                 hoverable
                 style={{ height: '100%', textAlign: 'center' }}
-                bodyStyle={{ padding: '40px 24px' }}
+                styles={{ body: { padding: '40px 24px' } }}
               >
-                <MobileOutlined style={{ fontSize: '48px', color: '#52c41a', marginBottom: '20px' }} />
+                <MobileOutlined style={{ fontSize: '48px', color: '#722ed1', marginBottom: '20px' }} />
                 <Title level={4}>Responsive</Title>
                 <Paragraph style={{ color: '#666' }}>
                   Hoạt động mượt mà trên desktop, tablet và mobile với thiết kế responsive.
