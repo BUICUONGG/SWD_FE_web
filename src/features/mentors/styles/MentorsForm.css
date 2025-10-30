@@ -1,0 +1,85 @@
+.mentors-form-container {
+  padding: 32px 24px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fff9f3 0%, #ffe8cc 100%);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.mentors-form-back-btn {
+  margin-bottom: 24px;
+  color: #ff8c28;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.mentors-form-back-btn:hover {
+  color: #ff7a00;
+  transform: translateX(-4px);
+}
+
+.mentors-form-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(255, 140, 40, 0.12);
+  border-top: 5px solid #ff8c28;
+  overflow: hidden;
+}
+
+.mentors-form-card :global(.ant-card-head) {
+  background: linear-gradient(135deg, #fff9f3 0%, #ffe8cc 100%);
+  border-bottom: 2px solid #ff8c28;
+  padding: 24px;
+}
+
+.mentors-form-card :global(.ant-card-head-title) {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ff8c28;
+}
+
+.mentors-form-card :global(.ant-card-body) {
+  padding: 32px;
+}
+
+.mentors-form-card :global(.ant-form-item-label > label) {
+  font-weight: 600;
+  color: #333;
+}
+
+.mentors-form-card :global(.ant-form-item-label > label::after) {
+  color: #ff8c28;
+}
+
+.mentors-form-card :global(.ant-input),
+.mentors-form-card :global(.ant-input-number),
+.mentors-form-card :global(.ant-select-selector) {
+  border-radius: 8px;
+  border: 2px solid #ffe8cc !important;
+  transition: all 0.3s ease;
+}
+
+.mentors-form-card :global(.ant-input:focus),
+.mentors-form-card :global(.ant-input-number-focused),
+.mentors-form-card :global(.ant-select-focused .ant-select-selector) {
+  border-color: #ff8c28 !important;
+  box-shadow: 0 0 0 2px rgba(255, 140, 40, 0.1) !important;
+}
+
+.mentors-form-card :global(.ant-btn-primary) {
+  background: linear-gradient(135deg, #ff8c28 0%, #ff7a00 100%);
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  padding: 10px 32px;
+  height: 44px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.mentors-form-card :global(.ant-btn-primary:hover) {
+  background: linear-gradient(135deg, #ff7a00 0%, #e67300 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 140, 40, 0.3);
+}

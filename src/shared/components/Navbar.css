@@ -1,0 +1,97 @@
+.navbar-desktop {
+  display: flex !important;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border-bottom: 2px solid #ff8c28;
+}
+
+.navbar-desktop :global(.ant-layout-header) {
+  background: white;
+  border-bottom: 2px solid #ff8c28;
+}
+
+.navbar-logo {
+  font-size: 24px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ff8c28 0%, #ff7a00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-right: 32px;
+  letter-spacing: 2px;
+  transition: all 0.3s ease;
+}
+
+.navbar-logo:hover {
+  transform: scale(1.05);
+}
+
+.navbar-desktop :global(.ant-menu) {
+  background: transparent;
+  border: none;
+}
+
+.navbar-desktop :global(.ant-menu-item) {
+  color: #333 !important;
+  font-weight: 500;
+}
+
+.navbar-desktop :global(.ant-menu-item:hover) {
+  color: #ff8c28 !important;
+  background: rgba(255, 140, 40, 0.05) !important;
+}
+
+.navbar-desktop :global(.ant-menu-item-selected) {
+  background: rgba(255, 140, 40, 0.1) !important;
+  border-bottom: 3px solid #ff8c28 !important;
+}
+
+.navbar-desktop :global(.ant-menu-submenu) {
+  color: #333 !important;
+}
+
+.navbar-desktop :global(.ant-menu-submenu:hover) {
+  color: #ff8c28 !important;
+}
+
+.navbar-desktop :global(.ant-btn-text) {
+  color: #ff8c28;
+  font-weight: 600;
+}
+
+.navbar-desktop :global(.ant-btn-text:hover) {
+  background: rgba(255, 140, 40, 0.05);
+  color: #ff7a00;
+}
+
+.navbar-mobile-button {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .navbar-desktop {
+    display: none !important;
+  }
+
+  .navbar-mobile-button {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: linear-gradient(135deg, #ff8c28 0%, #ff7a00 100%);
+    box-shadow: 0 4px 12px rgba(255, 140, 40, 0.15);
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    z-index: 100;
+    border-bottom: 2px solid #e67300;
+  }
+
+  .navbar-logo {
+    font-size: 18px;
+  }
+}

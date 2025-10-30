@@ -1,0 +1,108 @@
+.courses-list-container {
+  padding: 32px 24px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fff9f3 0%, #ffe8cc 100%);
+}
+
+.courses-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(255, 140, 40, 0.08);
+  border-left: 5px solid #ff8c28;
+}
+
+.courses-list-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ff8c28;
+}
+
+.courses-list-header h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ff8c28;
+}
+
+.courses-search-section {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(255, 140, 40, 0.06);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.courses-search-section input {
+  border-radius: 8px;
+  border: 2px solid #ffe8cc !important;
+  padding: 10px 16px !important;
+}
+
+.courses-search-section input:focus {
+  border-color: #ff8c28 !important;
+  box-shadow: 0 0 0 2px rgba(255, 140, 40, 0.1) !important;
+}
+
+.courses-search-section .ant-select-selector {
+  border-radius: 8px;
+  border: 2px solid #ffe8cc !important;
+}
+
+.courses-search-section button {
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.courses-search-section :global(.ant-btn-primary) {
+  background: linear-gradient(135deg, #ff8c28 0%, #ff7a00 100%);
+  border: none;
+}
+
+.courses-search-section :global(.ant-btn-primary:hover) {
+  background: linear-gradient(135deg, #ff7a00 0%, #e67300 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 140, 40, 0.3);
+}
+
+.courses-search-section :global(.ant-space-item) {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .courses-list-container {
+    padding: 16px 12px;
+  }
+
+  .courses-list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .courses-list-header h1,
+  .courses-list-header h2 {
+    font-size: 24px;
+  }
+
+  .courses-search-section {
+    flex-direction: column;
+  }
+
+  .courses-search-section input,
+  .courses-search-section .ant-select,
+  .courses-search-section button {
+    width: 100%;
+  }
+}

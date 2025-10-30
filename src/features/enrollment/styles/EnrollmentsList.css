@@ -1,0 +1,71 @@
+.enrollments-list-container {
+  padding: 32px 24px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fff9f3 0%, #ffe8cc 100%);
+}
+
+.enrollments-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(255, 140, 40, 0.08);
+  border-left: 5px solid #ff8c28;
+}
+
+.enrollments-list-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ff8c28;
+}
+
+.enrollments-list-header h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ff8c28;
+}
+
+.enrollments-search-section {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(255, 140, 40, 0.06);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.enrollments-search-section input {
+  border-radius: 8px;
+  border: 2px solid #ffe8cc !important;
+  padding: 10px 16px !important;
+}
+
+.enrollments-search-section input:focus {
+  border-color: #ff8c28 !important;
+  box-shadow: 0 0 0 2px rgba(255, 140, 40, 0.1) !important;
+}
+
+.enrollments-search-section button {
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.enrollments-search-section :global(.ant-btn-primary) {
+  background: linear-gradient(135deg, #ff8c28 0%, #ff7a00 100%);
+  border: none;
+}
+
+.enrollments-search-section :global(.ant-btn-primary:hover) {
+  background: linear-gradient(135deg, #ff7a00 0%, #e67300 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 140, 40, 0.3);
+}

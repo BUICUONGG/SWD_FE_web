@@ -1,0 +1,1 @@
+export { semesterService } from './semestersService';
