@@ -5,16 +5,22 @@ import {
   BookOutlined,
   UserOutlined,
   ApartmentOutlined,
+  TeamOutlined,
+  CalendarOutlined,
+  UsergroupAddOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import { CourseManagement } from '../components/CourseManagement';
 import { EnrollmentManagement } from '../components/EnrollmentManagement';
 import { MajorManagement } from '../components/MajorManagement';
+import { MentorProfileManagement } from '../components/MentorProfileManagement';
+import { SemesterManagement } from '../components/SemesterManagement';
+import UserManagement from '../components/UserManagement';
 
 const { Sider, Content } = Layout;
 
-type MenuKey = 'dashboard' | 'courses' | 'enrollments' | 'majors';
+type MenuKey = 'dashboard' | 'courses' | 'enrollments' | 'majors' | 'mentors' | 'semesters' | 'users';
 
 const AdminDashboard: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -41,6 +47,21 @@ const AdminDashboard: React.FC = () => {
       icon: <ApartmentOutlined />,
       label: 'Quản lý Chuyên ngành',
     },
+    {
+      key: 'mentors',
+      icon: <TeamOutlined />,
+      label: 'Quản lý Giảng viên',
+    },
+    {
+      key: 'semesters',
+      icon: <CalendarOutlined />,
+      label: 'Quản lý Kỳ học',
+    },
+    {
+      key: 'users',
+      icon: <UsergroupAddOutlined />,
+      label: 'Quản lý Người dùng',
+    },
   ];
 
   const renderContent = () => {
@@ -58,6 +79,12 @@ const AdminDashboard: React.FC = () => {
         return <EnrollmentManagement />;
       case 'majors':
         return <MajorManagement />;
+      case 'mentors':
+        return <MentorProfileManagement />;
+      case 'semesters':
+        return <SemesterManagement />;
+      case 'users':
+        return <UserManagement />;
       default:
         return <CourseManagement />;
     }
@@ -142,6 +169,11 @@ const AdminDashboard: React.FC = () => {
           <div style={{ marginLeft: '16px', fontSize: '16px', fontWeight: 500 }}>
             {selectedKey === 'dashboard' && 'Tổng quan'}
             {selectedKey === 'courses' && 'Quản lý Khóa học'}
+            {selectedKey === 'enrollments' && 'Quản lý Đăng ký'}
+            {selectedKey === 'majors' && 'Quản lý Chuyên ngành'}
+            {selectedKey === 'mentors' && 'Quản lý Giảng viên'}
+            {selectedKey === 'semesters' && 'Quản lý Kỳ học'}
+            {selectedKey === 'users' && 'Quản lý Người dùng'}
           </div>
         </div>
 

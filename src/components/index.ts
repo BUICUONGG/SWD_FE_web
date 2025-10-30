@@ -17,3 +17,6 @@ export { AdminProtectedRoute, StudentProtectedRoute, PublicRoute } from './Prote
 export { CourseManagement } from './CourseManagement';
 export { EnrollmentManagement } from './EnrollmentManagement';
 export { MajorManagement } from './MajorManagement';
+export { MentorProfileManagement } from './MentorProfileManagement';
+export { SemesterManagement } from './SemesterManagement';
+export { default as UserManagement } from './UserManagement';
