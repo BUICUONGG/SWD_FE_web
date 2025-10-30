@@ -141,7 +141,7 @@ export const CourseManagement: React.FC = () => {
         code: values.code,
         name: values.name,
         maxStudents: values.maxStudents,
-        teamFormationDeadline: values.teamFormationDeadline.toISOString(),
+        teamFormationDeadline: values.teamFormationDeadline.format('YYYY-MM-DDTHH:mm:ss'),
         status: values.status,
         mentorId: values.mentorId,
         subjectId: values.subjectId,

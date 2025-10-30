@@ -15,3 +15,5 @@ export { Row, Col } from 'antd';
 export { AppLayout } from './AppLayout';
 export { AdminProtectedRoute, StudentProtectedRoute, PublicRoute } from './ProtectedRoute';
 export { CourseManagement } from './CourseManagement';
+export { EnrollmentManagement } from './EnrollmentManagement';
+export { MajorManagement } from './MajorManagement';

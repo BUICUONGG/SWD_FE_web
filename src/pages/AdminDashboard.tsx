@@ -3,14 +3,18 @@ import { Layout, Menu } from 'antd';
 import {
   DashboardOutlined,
   BookOutlined,
+  UserOutlined,
+  ApartmentOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import { CourseManagement } from '../components/CourseManagement';
+import { EnrollmentManagement } from '../components/EnrollmentManagement';
+import { MajorManagement } from '../components/MajorManagement';
 
 const { Sider, Content } = Layout;
 
-type MenuKey = 'dashboard' | 'courses';
+type MenuKey = 'dashboard' | 'courses' | 'enrollments' | 'majors';
 
 const AdminDashboard: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -27,6 +31,16 @@ const AdminDashboard: React.FC = () => {
       icon: <BookOutlined />,
       label: 'Quản lý Khóa học',
     },
+    {
+      key: 'enrollments',
+      icon: <UserOutlined />,
+      label: 'Quản lý Đăng ký',
+    },
+    {
+      key: 'majors',
+      icon: <ApartmentOutlined />,
+      label: 'Quản lý Chuyên ngành',
+    },
   ];
 
   const renderContent = () => {
@@ -40,6 +54,10 @@ const AdminDashboard: React.FC = () => {
         );
       case 'courses':
         return <CourseManagement />;
+      case 'enrollments':
+        return <EnrollmentManagement />;
+      case 'majors':
+        return <MajorManagement />;
       default:
         return <CourseManagement />;
     }

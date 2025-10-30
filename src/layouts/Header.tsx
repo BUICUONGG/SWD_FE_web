@@ -7,8 +7,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   DashboardOutlined,
-  SettingOutlined,
-  HomeOutlined
+  SettingOutlined
 } from '@ant-design/icons';
 import './Header.css';
 
@@ -66,11 +65,6 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   const mobileMenuItems = [
-    {
-      key: 'home',
-      label: <Link to="/">Trang chủ</Link>,
-      icon: <HomeOutlined />,
-    },
     ...(isLoggedIn ? [
       {
         key: 'dashboard',
@@ -164,20 +158,6 @@ export const Header: React.FC<HeaderProps> = ({
           }} 
           className="desktop-nav"
         >
-          <Link to="/">
-            <Button 
-              type="text" 
-              icon={<HomeOutlined />}
-              style={{
-                height: '40px',
-                borderRadius: '8px',
-                fontWeight: '500'
-              }}
-            >
-              Trang chủ
-            </Button>
-          </Link>
-
           {isLoggedIn ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Dropdown 
