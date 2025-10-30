@@ -14,3 +14,4 @@ export { Row, Col } from 'antd';
 // Custom components
 export { AppLayout } from './AppLayout';
 export { AdminProtectedRoute, StudentProtectedRoute, PublicRoute } from './ProtectedRoute';
+export { CourseManagement } from './CourseManagement';
