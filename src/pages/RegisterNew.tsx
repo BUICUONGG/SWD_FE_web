@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, Typography, Select, DatePicker, message, Space } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, CalendarOutlined } from '@ant-design/icons';
-import { useNavigate, Link } from 'react-router-dom';
 import { authService, isApiError } from '../services/authService';
 import type { RegisterRequest } from '../types/auth';
 import dayjs from 'dayjs';
@@ -9,10 +8,17 @@ import dayjs from 'dayjs';
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
 
-const RegisterPage: React.FC = () => {
+interface RegisterPageProps {
+  onRegisterSuccess?: () => void;
+  onBackToLogin?: () => void;
+}
+
+const RegisterPage: React.FC<RegisterPageProps> = ({ 
+  onRegisterSuccess, 
+  onBackToLogin 
+}) => {
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
-  const navigate = useNavigate();
 
   const onFinish = async (values: {
     email: string;
@@ -43,8 +49,10 @@ const RegisterPage: React.FC = () => {
       message.success('Đăng ký tài khoản thành công!');
       form.resetFields();
       
-      // Navigate to login page after successful registration
-      navigate('/login');
+      // Call success callback
+      if (onRegisterSuccess) {
+        onRegisterSuccess();
+      }
       
     } catch (error) {
       console.error('Register error:', error);
@@ -245,16 +253,18 @@ const RegisterPage: React.FC = () => {
         <div style={{ textAlign: 'center', marginTop: 24 }}>
           <Paragraph style={{ color: '#6b7280', margin: 0 }}>
             Đã có tài khoản? {' '}
-            <Link 
-              to="/login"
+            <Button 
+              type="link"
+              onClick={onBackToLogin}
               style={{ 
                 color: '#667eea',
                 fontWeight: '500',
-                textDecoration: 'none'
+                padding: 0,
+                height: 'auto'
               }}
             >
               Đăng nhập ngay
-            </Link>
+            </Button>
           </Paragraph>
         </div>
       </Card>

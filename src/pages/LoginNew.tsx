@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, Typography, Checkbox, Divider, Space, message } from 'antd';
 import { UserOutlined, LockOutlined, GoogleOutlined, FacebookOutlined } from '@ant-design/icons';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { authService, isApiError, isLoginSuccess } from '../services/authService';
 import { TokenStorage, getUserFromToken } from '../utils/jwt';
 import type { LoginRequest } from '../types/auth';
 
 const { Title, Paragraph } = Typography;
 
-const LoginPage: React.FC = () => {
+interface LoginPageProps {
+  onAdminLogin?: (userName?: string) => void;
+  onStudentLogin?: (userName?: string) => void;
+  onRegisterClick?: () => void;
+}
+
+const LoginPage: React.FC<LoginPageProps> = ({ 
+  onAdminLogin, 
+  onStudentLogin, 
+  onRegisterClick 
+}) => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [form] = Form.useForm();
-  const navigate = useNavigate();
 
   // Fill demo account data
   const fillDemoAccount = (type: 'admin' | 'student') => {
@@ -63,13 +73,13 @@ const LoginPage: React.FC = () => {
             newValue: accessToken
           }));
           
-          // Navigate based on role
+          // Navigate based on user role
           if (user.isAdmin) {
-            navigate('/admin/dashboard');
+            if (onAdminLogin) onAdminLogin(user.email);
+            navigate('/admin/dashboard', { replace: true });
           } else if (user.isStudent) {
-            navigate('/student/dashboard');
-          } else {
-            navigate('/');
+            if (onStudentLogin) onStudentLogin(user.email);
+            navigate('/student/dashboard', { replace: true });
           }
         }
       }
@@ -264,16 +274,18 @@ const LoginPage: React.FC = () => {
         <div style={{ textAlign: 'center', marginTop: 24 }}>
           <Paragraph style={{ color: '#6b7280', margin: 0 }}>
             Chưa có tài khoản? {' '}
-            <Link 
-              to="/register"
+            <Button 
+              type="link"
+              onClick={onRegisterClick}
               style={{ 
                 color: '#667eea',
                 fontWeight: '500',
-                textDecoration: 'none'
+                padding: 0,
+                height: 'auto'
               }}
             >
               Đăng ký ngay
-            </Link>
+            </Button>
           </Paragraph>
         </div>
       </Card>

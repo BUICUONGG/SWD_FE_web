@@ -37,6 +37,13 @@ export const Header: React.FC<HeaderProps> = ({
       } else if (userType === 'student') {
         navigate('/student/dashboard');
       }
+    } else if (key === 'profile') {
+      // Navigate to profile based on user type
+      if (userType === 'admin') {
+        navigate('/admin/profile');
+      } else if (userType === 'student') {
+        navigate('/student/profile');
+      }
     } else if (key === 'logout') {
       onLogout?.();
     }
@@ -47,6 +54,11 @@ export const Header: React.FC<HeaderProps> = ({
       key: 'dashboard',
       label: userType === 'admin' ? 'Quản trị' : 'Bảng điều khiển',
       icon: <DashboardOutlined />,
+    },
+    {
+      key: 'profile',
+      label: 'Thông tin cá nhân',
+      icon: <UserOutlined />,
     },
     {
       key: 'settings',

@@ -5,7 +5,8 @@ import type {
   UserListResponse,
   ImportResponse,
   DeleteUserResponse,
-  ApiErrorResponse
+  ApiErrorResponse,
+  User
 } from '../types/user';
 
 import { 
@@ -70,6 +71,27 @@ class UserService {
       return {
         success: false,
         message: 'Lỗi kết nối khi lấy thông tin người dùng hiện tại'
+      };
+    }
+  }
+
+  // 2.5 Update current user info
+  async updateCurrentUser(userData: Partial<User>): Promise<UserResponse | ApiErrorResponse> {
+    try {
+      // Try POST method first (common for updates in some APIs)
+      const response = await fetch(`${API_BASE}/me`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(userData)
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return {
+        success: false,
+        message: 'Lỗi kết nối khi cập nhật thông tin người dùng'
       };
     }
   }

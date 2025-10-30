@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test User Management</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            text-align: center;
+        }
+        .button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .button:hover {
+            background: #40a9ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test User Management Page</h1>
+    <p>Click button để set admin token và chuyển đến User Management</p>
+    
+    <button class="button" onclick="setAdminTokenAndRedirect()">
+        🔑 Set Admin Token & Go to User Management
+    </button>
+    
+    <button class="button" onclick="clearTokens()">
+        🗑️ Clear Tokens
+    </button>
+    
+    <div id="status" style="margin-top: 20px; font-size: 14px; color: #666;"></div>
+
+    <script>
+        function setAdminTokenAndRedirect() {
+            // Set fake admin token
+            const fakePayload = {
+                iss: "test",
+                sub: "admin@admin.com", 
+                exp: Math.floor(Date.now() / 1000) + 3600,
+                iat: Math.floor(Date.now() / 1000),
+                jti: "test-jwt-id",
+                scope: "ADMIN"
+            };
+            
+            const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+            const payload = btoa(JSON.stringify(fakePayload));
+            const fakeToken = `${header}.${payload}.fake-signature`;
+            
+            localStorage.setItem('accessToken', fakeToken);
+            localStorage.setItem('refreshToken', 'fake-refresh-token');
+            
+            document.getElementById('status').innerHTML = '✅ Admin token set! Redirecting...';
+            
+            // Redirect to user management
+            setTimeout(() => {
+                window.location.href = 'http://localhost:3002/admin/users';
+            }, 1000);
+        }
+        
+        function clearTokens() {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            document.getElementById('status').innerHTML = '🗑️ Tokens cleared!';
+        }
+        
+        // Check current token status
+        window.onload = function() {
+            const token = localStorage.getItem('accessToken');
+            if (token) {
+                document.getElementById('status').innerHTML = '✅ Token exists: ' + token.substring(0, 50) + '...';
+            } else {
+                document.getElementById('status').innerHTML = '❌ No token found';
+            }
+        }
+    </script>
+</body>
+</html>

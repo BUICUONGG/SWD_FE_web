@@ -20,3 +20,5 @@ export { MajorManagement } from './MajorManagement';
 export { MentorProfileManagement } from './MentorProfileManagement';
 export { SemesterManagement } from './SemesterManagement';
 export { default as UserManagement } from './UserManagement';
+export { default as StudentNavbar } from './StudentNavbar';
+export { default as StudentLayout } from './StudentLayout';

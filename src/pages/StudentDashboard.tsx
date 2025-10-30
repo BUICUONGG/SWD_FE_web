@@ -1,156 +1,269 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
-  Layout, 
-  Row, 
-  Col, 
-  Card, 
-  Progress, 
-  List, 
-  Avatar,
-  Button,
-  Typography,
-  Space,
-  Tag,
-  Calendar,
-  Badge
+  Card, Row, Col, Statistic, List, Typography, Space, Button, Spin, 
+  Progress, Avatar, Badge, Tag, Timeline, Alert
 } from 'antd';
 import { 
-  BookOutlined, 
-  TeamOutlined, 
-  BulbOutlined,
-  TrophyOutlined,
-  CalendarOutlined,
-  FileTextOutlined,
-  UserOutlined
+  BookOutlined, ClockCircleOutlined, TrophyOutlined, CalendarOutlined,
+  ExclamationCircleOutlined, BellOutlined,
+  FileTextOutlined, UserOutlined, StarOutlined, FireOutlined
 } from '@ant-design/icons';
+import StudentLayout from '../components/StudentLayout';
+import { userService, isApiError, isUserResponse } from '../services/userService';
+import { enrollmentService, isApiError as isEnrollmentApiError, isEnrollmentListResponse } from '../services/enrollmentService';
+import { courseService, isApiError as isCourseApiError, isCourseResponse } from '../services/courseService';
+import type { User } from '../types/user';
+import type { Enrollment } from '../types/enrollment';
+import type { Course as CourseType } from '../types/course';
 
-const { Content } = Layout;
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
+
+interface Activity {
+  id: number;
+  title: string;
+  time: string;
+  type: 'assignment' | 'exam' | 'grade' | 'course' | 'notification';
+  status?: 'completed' | 'pending' | 'late';
+}
+
+interface Course {
+  id: number;
+  name: string;
+  code: string;
+  instructor: string;
+  progress: number;
+  nextClass: string;
+  status: 'active' | 'completed' | 'upcoming';
+}
 
 const StudentDashboard: React.FC = () => {
-  // Mock data
-  const courses = [
-    {
-      id: 1,
-      title: 'Lập trình React cơ bản',
-      progress: 75,
-      instructor: 'TS. Nguyễn Văn A',
-      status: 'Đang học',
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<CourseType[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch current user
+        const userResponse = await userService.getCurrentUser();
+        if (isApiError(userResponse)) {
+          throw new Error(userResponse.message);
+        }
+        if (isUserResponse(userResponse)) {
+          setUser(userResponse.data);
+        }
+
+        // Fetch user enrollments
+        if (userResponse.data?.userId) {
+          const enrollmentsResponse = await enrollmentService.getEnrollmentsByUser(userResponse.data.userId);
+          if (isEnrollmentApiError(enrollmentsResponse)) {
+            throw new Error(enrollmentsResponse.message);
+          }
+          if (isEnrollmentListResponse(enrollmentsResponse)) {
+            setEnrollments(enrollmentsResponse.data);
+            
+            // Fetch course details for each enrollment
+            const coursePromises = enrollmentsResponse.data.map(async (enrollment) => {
+              const courseResponse = await courseService.getCourseById(enrollment.courseId);
+              if (isCourseApiError(courseResponse)) {
+                console.error(`Failed to fetch course ${enrollment.courseId}:`, courseResponse.message);
+                return null;
+              }
+              if (isCourseResponse(courseResponse)) {
+                return courseResponse.data;
+              }
+              return null;
+            });
+
+            const courseResults = await Promise.all(coursePromises);
+            const validCourses = courseResults.filter((course): course is CourseType => course !== null);
+            setEnrolledCourses(validCourses);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <StudentLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <Spin size="large" tip="Đang tải dữ liệu..." />
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <StudentLayout>
+        <div style={{ padding: '24px' }}>
+          <Alert
+            message="Lỗi tải dữ liệu"
+            description={error}
+            type="error"
+            showIcon
+            action={
+              <Button size="small" onClick={() => window.location.reload()}>
+                Thử lại
+              </Button>
+            }
+          />
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  // Generate activities from enrollment data
+  const enrollmentActivities: Activity[] = enrollments.slice(0, 3).map((enrollment) => ({
+    id: enrollment.enrollmentId,
+    title: `Đăng ký thành công lớp ${enrollment.courseName}`,
+    time: new Date(enrollment.enrollmentDate).toLocaleDateString('vi-VN'),
+    type: 'course' as const,
+    status: enrollment.status === 'APPROVED' ? 'completed' : 'pending'
+  }));
+
+  const activities: Activity[] = [
+    ...enrollmentActivities,
+    { 
+      id: 1001, 
+      title: 'Nộp bài tập Lập trình React', 
+      time: '2 giờ trước', 
+      type: 'assignment',
+      status: 'completed'
     },
-    {
-      id: 2,
-      title: 'Thiết kế UI/UX',
-      progress: 45,
-      instructor: 'ThS. Trần Thị B',
-      status: 'Đang học',
-    },
-    {
-      id: 3,
-      title: 'Quản trị dự án',
-      progress: 100,
-      instructor: 'TS. Lê Văn C',
-      status: 'Hoàn thành',
-    },
+    { 
+      id: 1002, 
+      title: 'Kiểm tra giữa kỳ môn UI/UX', 
+      time: '1 ngày trước', 
+      type: 'exam',
+      status: 'pending'
+    }
   ];
 
-  const teams = [
-    {
-      id: 1,
-      name: 'Team Alpha',
-      members: 4,
-      project: 'Ứng dụng quản lý học tập',
-      status: 'Đang thực hiện',
-    },
-    {
-      id: 2,
-      name: 'Team Beta',
-      members: 3,
-      project: 'Website bán hàng',
-      status: 'Đã hoàn thành',
-    },
-  ];
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'assignment': return <FileTextOutlined style={{ color: '#1890ff' }} />;
+      case 'exam': return <ExclamationCircleOutlined style={{ color: '#faad14' }} />;
+      case 'grade': return <TrophyOutlined style={{ color: '#52c41a' }} />;
+      case 'course': return <BookOutlined style={{ color: '#722ed1' }} />;
+      default: return <BellOutlined style={{ color: '#8c8c8c' }} />;
+    }
+  };
 
-  const ideas = [
-    {
-      id: 1,
-      title: 'Ứng dụng học tiếng Anh bằng AI',
-      description: 'Tạo ứng dụng sử dụng AI để dạy phát âm tiếng Anh...',
-      likes: 25,
-      status: 'Đang phát triển',
-    },
-    {
-      id: 2,
-      title: 'Hệ thống quản lý thư viện thông minh',
-      description: 'Hệ thống quản lý sách với QR code và AI recommendation...',
-      likes: 18,
-      status: 'Ý tưởng',
-    },
-  ];
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'completed': return 'success';
+      case 'pending': return 'warning';
+      case 'late': return 'error';
+      default: return 'default';
+    }
+  };
 
-  const assignments = [
-    { title: 'Bài tập React - Component', dueDate: '2025-10-05', status: 'pending' },
-    { title: 'Thiết kế mockup trang web', dueDate: '2025-10-08', status: 'submitted' },
-    { title: 'Báo cáo tiến độ dự án', dueDate: '2025-10-12', status: 'pending' },
-  ];
+  // Transform enrolled courses to display format
+  const displayCourses: Course[] = enrolledCourses.map((course) => ({
+    id: course.courseId,
+    name: course.name,
+    code: course.code,
+    instructor: course.mentorName,
+    progress: 0, // This would need to be calculated from enrollment progress
+    nextClass: 'Chưa có lịch', // This would need to be fetched from schedule API
+    status: course.status === 'IN_PROGRESS' ? 'active' : 
+            course.status === 'COMPLETED' ? 'completed' : 'upcoming'
+  }));
 
   return (
-    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
-      <Content style={{ padding: '24px' }}>
-        {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <Space align="start">
-            <Avatar size={64} icon={<UserOutlined />} />
-            <div>
-              <Title level={2} style={{ margin: 0 }}>Xin chào, Nguyễn Văn A!</Title>
-              <Text type="secondary">Sinh viên khoa Công nghệ thông tin</Text>
-            </div>
-          </Space>
-        </div>
+    <StudentLayout>
+      <div style={{ padding: '24px', background: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
+        {/* Welcome Header */}
+        <Card style={{ marginBottom: 24, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: 'none' }}>
+          <Row align="middle">
+            <Col flex="auto">
+              <Title level={2} style={{ color: 'white', margin: 0 }}>
+                🌟 Chào mừng trở lại, {user?.fullName || 'Sinh viên'}!
+              </Title>
+              <Paragraph style={{ color: 'rgba(255,255,255,0.9)', margin: 0, fontSize: '16px' }}>
+                Hôm nay là ngày tuyệt vời để học tập. Hãy cùng khám phá những điều mới mẻ!
+              </Paragraph>
+            </Col>
+            <Col>
+              <Space>
+                <Avatar 
+                  size={64} 
+                  src={user?.avatarUrl} 
+                  icon={<UserOutlined />} 
+                  style={{ backgroundColor: '#ffffff20', color: 'white' }} 
+                />
+              </Space>
+            </Col>
+          </Row>
+        </Card>
 
-        {/* Stats Row */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <div style={{ textAlign: 'center' }}>
-                <TrophyOutlined style={{ fontSize: '32px', color: '#faad14' }} />
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>3</div>
-                  <div style={{ color: '#666' }}>Khóa học</div>
-                </div>
-              </div>
+        {/* Statistics Cards */}
+        <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Statistic
+                title="Môn học đang học"
+                value={enrolledCourses.length}
+                prefix={<BookOutlined style={{ color: '#1890ff' }} />}
+                valueStyle={{ color: '#1890ff', fontSize: '28px' }}
+                suffix={<Badge count={enrollments.filter(e => e.status === 'APPROVED').length} style={{ backgroundColor: '#52c41a' }}>
+                  <FireOutlined style={{ color: '#ff7875', marginLeft: 8 }} />
+                </Badge>}
+              />
+              <Text type="secondary" style={{ fontSize: '12px' }}>Đã được phê duyệt</Text>
             </Card>
           </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <div style={{ textAlign: 'center' }}>
-                <TeamOutlined style={{ fontSize: '32px', color: '#52c41a' }} />
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>2</div>
-                  <div style={{ color: '#666' }}>Nhóm</div>
-                </div>
-              </div>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Statistic
+                title="Điểm trung bình"
+                value={8.5}
+                precision={1}
+                prefix={<TrophyOutlined style={{ color: '#faad14' }} />}
+                valueStyle={{ color: '#faad14', fontSize: '28px' }}
+                suffix={<StarOutlined style={{ color: '#faad14' }} />}
+              />
+              <Progress percent={85} size="small" showInfo={false} strokeColor="#faad14" />
             </Card>
           </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <div style={{ textAlign: 'center' }}>
-                <BulbOutlined style={{ fontSize: '32px', color: '#1890ff' }} />
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>2</div>
-                  <div style={{ color: '#666' }}>Ý tưởng</div>
-                </div>
-              </div>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Statistic
+                title="Tín chỉ hoàn thành"
+                value={45}
+                prefix={<CalendarOutlined style={{ color: '#52c41a' }} />}
+                valueStyle={{ color: '#52c41a', fontSize: '28px' }}
+                suffix="/ 120"
+              />
+              <Progress percent={37.5} size="small" showInfo={false} strokeColor="#52c41a" />
             </Card>
           </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <div style={{ textAlign: 'center' }}>
-                <FileTextOutlined style={{ fontSize: '32px', color: '#f5222d' }} />
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>5</div>
-                  <div style={{ color: '#666' }}>Bài tập</div>
-                </div>
-              </div>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Statistic
+                title="Giờ học tuần này"
+                value={enrolledCourses.length * 3}
+                prefix={<ClockCircleOutlined style={{ color: '#722ed1' }} />}
+                valueStyle={{ color: '#722ed1', fontSize: '28px' }}
+                suffix="giờ"
+              />
+              <Text type="secondary" style={{ fontSize: '12px' }}>Dựa trên số môn học</Text>
             </Card>
           </Col>
         </Row>
@@ -159,130 +272,143 @@ const StudentDashboard: React.FC = () => {
         <Row gutter={[16, 16]}>
           {/* Left Column */}
           <Col xs={24} lg={16}>
-            {/* Courses */}
-            <Card title="Khóa học của tôi" style={{ marginBottom: 16 }}>
+            {/* Courses Progress */}
+            <Card title={<><BookOutlined /> Môn học đang theo học</> } style={{ marginBottom: 16 }}>
               <List
-                dataSource={courses}
-                renderItem={(course) => (
-                  <List.Item
-                    actions={[
-                      <Button type="primary" size="small">Tiếp tục học</Button>
-                    ]}
-                  >
+                dataSource={displayCourses}
+                renderItem={(course: Course) => (
+                  <List.Item>
                     <List.Item.Meta
-                      avatar={<Avatar icon={<BookOutlined />} />}
-                      title={course.title}
-                      description={`Giảng viên: ${course.instructor}`}
-                    />
-                    <div style={{ width: 200 }}>
-                      <Progress 
-                        percent={course.progress} 
-                        size="small"
-                        status={course.progress === 100 ? 'success' : 'active'}
-                      />
-                    </div>
-                  </List.Item>
-                )}
-              />
-            </Card>
-
-            {/* Teams */}
-            <Card title="Nhóm của tôi" style={{ marginBottom: 16 }}>
-              <List
-                dataSource={teams}
-                renderItem={(team) => (
-                  <List.Item
-                    actions={[
-                      <Button size="small">Xem chi tiết</Button>
-                    ]}
-                  >
-                    <List.Item.Meta
-                      avatar={<Avatar icon={<TeamOutlined />} />}
-                      title={team.name}
+                      avatar={<Avatar style={{ backgroundColor: '#1890ff' }}>{course.code}</Avatar>}
+                      title={
+                        <Space>
+                          <Text strong>{course.name}</Text>
+                          <Tag color="blue">{course.code}</Tag>
+                        </Space>
+                      }
                       description={
-                        <div>
-                          <div>Dự án: {team.project}</div>
-                          <div>Thành viên: {team.members} người</div>
-                        </div>
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                          <Text type="secondary">Giảng viên: {course.instructor}</Text>
+                          <Text type="secondary">Lớp tiếp theo: {course.nextClass}</Text>
+                          <Progress 
+                            percent={course.progress} 
+                            size="small" 
+                            strokeColor={course.progress >= 80 ? '#52c41a' : course.progress >= 60 ? '#faad14' : '#1890ff'}
+                          />
+                        </Space>
                       }
                     />
-                    <Tag color={team.status === 'Đã hoàn thành' ? 'green' : 'blue'}>
-                      {team.status}
-                    </Tag>
-                  </List.Item>
-                )}
-              />
-            </Card>
-
-            {/* Ideas */}
-            <Card title="Ý tưởng của tôi">
-              <List
-                dataSource={ideas}
-                renderItem={(idea) => (
-                  <List.Item
-                    actions={[
-                      <Button size="small">Chỉnh sửa</Button>,
-                      <span>❤️ {idea.likes}</span>
-                    ]}
-                  >
-                    <List.Item.Meta
-                      avatar={<Avatar icon={<BulbOutlined />} />}
-                      title={idea.title}
-                      description={idea.description}
-                    />
-                    <Tag color={idea.status === 'Đang phát triển' ? 'orange' : 'blue'}>
-                      {idea.status}
-                    </Tag>
-                  </List.Item>
-                )}
-              />
-            </Card>
-          </Col>
-
-          {/* Right Column */}
-          <Col xs={24} lg={8}>
-            {/* Assignments */}
-            <Card title="Bài tập sắp hạn" style={{ marginBottom: 16 }}>
-              <List
-                size="small"
-                dataSource={assignments}
-                renderItem={(assignment) => (
-                  <List.Item>
-                    <div style={{ width: '100%' }}>
-                      <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
-                        {assignment.title}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text type="secondary">
-                          <CalendarOutlined /> {assignment.dueDate}
-                        </Text>
-                        <Tag color={assignment.status === 'submitted' ? 'green' : 'orange'}>
-                          {assignment.status === 'submitted' ? 'Đã nộp' : 'Chưa nộp'}
-                        </Tag>
-                      </div>
+                    <div>
+                      <Text strong>{course.progress}%</Text>
                     </div>
                   </List.Item>
                 )}
               />
             </Card>
 
-            {/* Calendar */}
-            <Card title="Lịch học">
-              <Calendar 
-                fullscreen={false}
-                dateCellRender={(value) => {
-                  const date = value.date();
-                  if (date === 5 || date === 10 || date === 15) {
-                    return <Badge status="success" />;
-                  }
-                  return null;
-                }}
-              />
+            {/* Recent Activities */}
+            <Card title={<><ClockCircleOutlined /> Hoạt động gần đây</> }>
+              <Timeline>
+                {activities.map((activity) => (
+                  <Timeline.Item 
+                    key={activity.id}
+                    dot={getActivityIcon(activity.type)}
+                  >
+                    <Space direction="vertical" size={4}>
+                      <Space>
+                        <Text strong>{activity.title}</Text>
+                        {activity.status && (
+                          <Tag color={getStatusColor(activity.status)}>
+                            {activity.status === 'completed' ? 'Hoàn thành' : 
+                             activity.status === 'pending' ? 'Đang chờ' : 'Trễ hạn'}
+                          </Tag>
+                        )}
+                      </Space>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>{activity.time}</Text>
+                    </Space>
+                  </Timeline.Item>
+                ))}
+              </Timeline>
             </Card>
           </Col>
+          
+          {/* Right Column */}
+          <Col xs={24} lg={8}>
+            {/* Quick Actions */}
+            <Card title="🚀 Thao tác nhanh" style={{ marginBottom: 16 }}>
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <Button 
+                  type="primary" 
+                  icon={<BookOutlined />}
+                  block 
+                  size="large"
+                  onClick={() => navigate('/student/courses')}
+                >
+                  📚 Khóa học
+                </Button>
+                <Button 
+                  icon={<CalendarOutlined />}
+                  block 
+                  size="large"
+                  onClick={() => navigate('/student/classes')}
+                >
+                  🏫 Lớp học
+                </Button>
+                <Button 
+                  icon={<ClockCircleOutlined />}
+                  block 
+                  size="large"
+                  onClick={() => navigate('/student/schedule')}
+                >
+                  📅 Lịch học
+                </Button>
+                <Button 
+                  icon={<TrophyOutlined />}
+                  block 
+                  size="large"
+                  onClick={() => navigate('/student/grades')}
+                >
+                  🏆 Điểm số
+                </Button>
+              </Space>
+            </Card>
+
+            {/* Notifications */}
+            <Card title={<><BellOutlined /> Thông báo <Badge count={3} /></>}>
+              <List
+                size="small"
+                dataSource={[
+                  { title: 'Bài tập mới đã được giao', time: '2 giờ trước', important: true },
+                  { title: 'Lịch thi cuối kỳ đã cập nhật', time: '1 ngày trước', important: false },
+                  { title: 'Khóa học mới đã mở đăng ký', time: '2 ngày trước', important: false },
+                ]}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={item.important ? 
+                        <ExclamationCircleOutlined style={{ color: '#faad14' }} /> : 
+                        <BellOutlined style={{ color: '#8c8c8c' }} />
+                      }
+                      title={<Text style={{ fontSize: '14px' }}>{item.title}</Text>}
+                      description={<Text type="secondary" style={{ fontSize: '12px' }}>{item.time}</Text>}
+                    />
+                  </List.Item>
+                )}
+              />
+            </Card>
+
+            {/* Motivational Quote */}
+            <Alert
+              message="💡 Mẩu chuyện hôm nay"
+              description="Thành công không phải là chìa khóa của hạnh phúc. Hạnh phúc mới là chìa khóa của thành công."
+              type="info"
+              showIcon
+              style={{ marginTop: 16 }}
+            />
+          </Col>
         </Row>
-      </Content>
-    </Layout>
+      </div>
+    </StudentLayout>
   );
 };
 

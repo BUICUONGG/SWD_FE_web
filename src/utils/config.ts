@@ -28,6 +28,15 @@ export const API_CONFIG = {
     INTROSPECT: '/api/v1/auth/introspect',
     REFRESH: '/api/v1/auth/refresh',
     LOGOUT: '/api/v1/auth/logout',
+  },
+  SUBJECTS: {
+    LIST: '/api/v1/subjects',
+    BY_ID: '/api/v1/subjects',
+    BY_CODE: '/api/v1/subjects/code',
+    SEARCH: '/api/v1/subjects/search',
+    CREATE: '/api/v1/subjects',
+    UPDATE: '/api/v1/subjects',
+    DELETE: '/api/v1/subjects',
   }
 };
 

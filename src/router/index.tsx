@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { HomePage, LoginPage, RegisterPage, AdminDashboard, StudentDashboard } from '../pages';
+import { HomePage, LoginPage, RegisterPage, AdminDashboard, StudentDashboard, StudentCourses, StudentClasses, StudentSchedule, StudentGrades } from '../pages';
+import UserProfile from '../pages/UserProfile';
+import AdminProfile from '../pages/AdminProfile';
 import { AdminProtectedRoute, StudentProtectedRoute, PublicRoute } from '../components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -43,6 +45,14 @@ export const router = createBrowserRouter([
               </AdminProtectedRoute>
             ),
           },
+          {
+            path: "profile",
+            element: (
+              <AdminProtectedRoute>
+                <AdminProfile />
+              </AdminProtectedRoute>
+            ),
+          },
         ],
       },
       {
@@ -53,6 +63,46 @@ export const router = createBrowserRouter([
             element: (
               <StudentProtectedRoute>
                 <StudentDashboard />
+              </StudentProtectedRoute>
+            ),
+          },
+          {
+            path: "profile",
+            element: (
+              <StudentProtectedRoute>
+                <UserProfile />
+              </StudentProtectedRoute>
+            ),
+          },
+          {
+            path: "courses",
+            element: (
+              <StudentProtectedRoute>
+                <StudentCourses />
+              </StudentProtectedRoute>
+            ),
+          },
+          {
+            path: "classes",
+            element: (
+              <StudentProtectedRoute>
+                <StudentClasses />
+              </StudentProtectedRoute>
+            ),
+          },
+          {
+            path: "schedule",
+            element: (
+              <StudentProtectedRoute>
+                <StudentSchedule />
+              </StudentProtectedRoute>
+            ),
+          },
+          {
+            path: "grades",
+            element: (
+              <StudentProtectedRoute>
+                <StudentGrades />
               </StudentProtectedRoute>
             ),
           },

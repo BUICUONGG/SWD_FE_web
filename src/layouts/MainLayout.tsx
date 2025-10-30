@@ -11,6 +11,8 @@ interface MainLayoutProps {
   userType?: 'admin' | 'student' | null;
   userName?: string;
   onLogout?: () => void;
+  onLoginClick?: () => void;
+  onNavigate?: (page: string) => void;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ 
@@ -18,7 +20,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   isLoggedIn = false,
   userType = null,
   userName,
-  onLogout
+  onLogout,
+  onLoginClick,
+  onNavigate
 }) => {
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f5f5' }}>
