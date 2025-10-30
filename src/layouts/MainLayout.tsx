@@ -7,32 +7,26 @@ const { Content } = Layout;
 
 interface MainLayoutProps {
   children: React.ReactNode;
-  onLoginClick?: () => void;
   isLoggedIn?: boolean;
   userType?: 'admin' | 'student' | null;
   userName?: string;
   onLogout?: () => void;
-  onNavigate?: (page: string) => void;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ 
   children, 
-  onLoginClick,
   isLoggedIn = false,
   userType = null,
   userName,
-  onLogout,
-  onNavigate
+  onLogout
 }) => {
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f5f5' }}>
       <Header 
-        onLoginClick={onLoginClick}
         isLoggedIn={isLoggedIn}
         userType={userType}
         userName={userName}
         onLogout={onLogout}
-        onNavigate={onNavigate}
       />
       <Content style={{ 
         padding: '0',

@@ -9,10 +9,6 @@ export const AppLayout: React.FC = () => {
   const { isLoggedIn, userInfo, isInitialized } = useAuth();
   const navigate = useNavigate();
 
-  const handleLoginClick = () => {
-    navigate('/login');
-  };
-
   const handleLogout = async () => {
     try {
       const accessToken = TokenStorage.getAccessToken();
@@ -34,18 +30,6 @@ export const AppLayout: React.FC = () => {
       message.success("Đăng xuất thành công!");
       // Force a page reload to update auth state
       window.location.reload();
-    }
-  };
-
-  const handleNavigate = (page: string) => {
-    if (page === "home") {
-      navigate('/');
-    } else if (page === "dashboard") {
-      if (userInfo.type === "admin") {
-        navigate('/admin/dashboard');
-      } else if (userInfo.type === "student") {
-        navigate('/student/dashboard');
-      }
     }
   };
 
@@ -75,12 +59,10 @@ export const AppLayout: React.FC = () => {
 
   return (
     <MainLayout 
-      onLoginClick={handleLoginClick}
       isLoggedIn={isLoggedIn}
       userType={userInfo.type}
       userName={userInfo.name}
       onLogout={handleLogout}
-      onNavigate={handleNavigate}
     >
       <Outlet />
     </MainLayout>

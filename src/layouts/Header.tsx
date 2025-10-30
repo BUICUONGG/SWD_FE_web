@@ -1,35 +1,47 @@
 import React, { useState } from 'react';
 import { Layout, Button, Typography, Menu, Drawer, Avatar, Dropdown } from 'antd';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   LoginOutlined, 
   MenuOutlined,
   UserOutlined,
   LogoutOutlined,
   DashboardOutlined,
-  SettingOutlined
+  SettingOutlined,
+  HomeOutlined
 } from '@ant-design/icons';
+import './Header.css';
 
 const { Header: AntHeader } = Layout;
 const { Title } = Typography;
 
 interface HeaderProps {
-  onLoginClick?: () => void;
   isLoggedIn?: boolean;
   userType?: 'admin' | 'student' | null;
   userName?: string;
   onLogout?: () => void;
-  onNavigate?: (page: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
-  onLoginClick, 
   isLoggedIn = false, 
   userType = null,
   userName,
-  onLogout,
-  onNavigate 
+  onLogout
 }) => {
   const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
+  const navigate = useNavigate();
+
+  const handleUserMenuClick = ({ key }: { key: string }) => {
+    if (key === 'dashboard') {
+      if (userType === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (userType === 'student') {
+        navigate('/student/dashboard');
+      }
+    } else if (key === 'logout') {
+      onLogout?.();
+    }
+  };
 
   const userMenuItems = [
     {
@@ -53,141 +65,217 @@ export const Header: React.FC<HeaderProps> = ({
     },
   ];
 
-  const handleMenuClick = (e: { key: string }) => {
-    if (e.key === 'logout') {
+  const mobileMenuItems = [
+    {
+      key: 'home',
+      label: <Link to="/">Trang chủ</Link>,
+      icon: <HomeOutlined />,
+    },
+    ...(isLoggedIn ? [
+      {
+        key: 'dashboard',
+        label: userType === 'admin' ? 'Quản trị' : 'Bảng điều khiển',
+        icon: <DashboardOutlined />,
+      },
+      {
+        key: 'logout',
+        label: 'Đăng xuất',
+        icon: <LogoutOutlined />,
+        danger: true,
+      }
+    ] : [
+      {
+        key: 'login',
+        label: <Link to="/login">Đăng nhập</Link>,
+        icon: <LoginOutlined />,
+      }
+    ])
+  ];
+
+  const handleMobileMenuClick = ({ key }: { key: string }) => {
+    if (key === 'dashboard') {
+      if (userType === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (userType === 'student') {
+        navigate('/student/dashboard');
+      }
+    } else if (key === 'logout') {
       onLogout?.();
-    } else {
-      onNavigate?.(e.key);
     }
+    setMobileMenuVisible(false);
   };
 
   return (
-    <>
-      <AntHeader style={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        padding: '0 24px',
-        display: 'flex',
+    <AntHeader style={{ 
+      background: 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: 'blur(10px)',
+      borderBottom: '1px solid #f0f0f0',
+      padding: '0 20px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 1000,
+      height: '70px',
+      lineHeight: '70px'
+    }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
         alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: 0,
-        zIndex: 1000,
-        height: '70px'
+        height: '100%',
+        maxWidth: '1200px',
+        margin: '0 auto'
       }}>
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => onNavigate?.('home')}>
-          <div style={{
-            background: 'rgba(255,255,255,0.2)',
-            borderRadius: '12px',
-            padding: '8px 16px',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.1)'
-          }}>
-            <Title level={3} style={{ 
-              margin: 0, 
-              color: '#fff',
-              fontWeight: 700,
-              textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-            }}>
-              🎓 SWD Academy
-            </Title>
-          </div>
-        </div>
-
-        {/* Desktop Navigation - Removed */}
-
-        {/* User Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {isLoggedIn ? (
-            <Dropdown
-              menu={{
-                items: userMenuItems,
-                onClick: handleMenuClick,
-              }}
-              trigger={['click']}
-              placement="bottomRight"
-            >
-              <Button
-                type="text"
-                style={{
-                  color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  borderRadius: '25px',
-                  padding: '4px 16px 4px 4px',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: 'rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(10px)'
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ 
+                fontSize: '24px', 
+                marginRight: '8px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                🎓
+              </div>
+              <Title 
+                level={3} 
+                style={{ 
+                  margin: 0, 
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  fontWeight: 600
                 }}
               >
-                <Avatar 
-                  size="small" 
-                  icon={<UserOutlined />} 
-                  style={{ background: '#fff', color: '#667eea' }}
-                />
-                <span style={{ fontWeight: 500 }}>
-                  {userName || (userType === 'admin' ? 'Admin' : 'Sinh viên')}
-                </span>
-              </Button>
-            </Dropdown>
-          ) : (
+                SWD Academy
+              </Title>
+            </div>
+          </Link>
+        </div>
+
+        {/* Desktop Navigation */}
+        <div 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '16px'
+          }} 
+          className="desktop-nav"
+        >
+          <Link to="/">
             <Button 
-              type="primary" 
-              icon={<LoginOutlined />}
-              onClick={onLoginClick}
-              size="large"
+              type="text" 
+              icon={<HomeOutlined />}
               style={{
-                background: 'rgba(255,255,255,0.2)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                borderRadius: '25px',
-                color: '#fff',
-                fontWeight: 600,
                 height: '40px',
-                padding: '0 24px',
-                backdropFilter: 'blur(10px)',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.3)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
+                borderRadius: '8px',
+                fontWeight: '500'
               }}
             >
-              Đăng nhập
+              Trang chủ
             </Button>
+          </Link>
+
+          {isLoggedIn ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Dropdown 
+                menu={{ 
+                  items: userMenuItems,
+                  onClick: handleUserMenuClick
+                }}
+                placement="bottomRight"
+                trigger={['click']}
+              >
+                <Button 
+                  type="text"
+                  style={{
+                    height: '40px',
+                    borderRadius: '20px',
+                    padding: '0 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    border: '1px solid #e0e7ff',
+                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
+                  }}
+                >
+                  <Avatar 
+                    size="small" 
+                    icon={<UserOutlined />}
+                    style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    }}
+                  />
+                  <span style={{ 
+                    color: '#1f2937',
+                    fontWeight: '500',
+                    maxWidth: '120px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {userName || (userType === 'admin' ? 'Quản trị viên' : 'Sinh viên')}
+                  </span>
+                </Button>
+              </Dropdown>
+            </div>
+          ) : (
+            <Link to="/login">
+              <Button 
+                type="primary" 
+                icon={<LoginOutlined />}
+                style={{
+                  height: '40px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  border: 'none',
+                  fontWeight: '500',
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                }}
+              >
+                Đăng nhập
+              </Button>
+            </Link>
           )}
-
-          {/* Mobile Menu Button */}
-          <Button
-            type="text"
-            icon={<MenuOutlined />}
-            onClick={() => setMobileMenuVisible(true)}
-            style={{
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.3)',
-              borderRadius: '8px',
-              background: 'rgba(255,255,255,0.1)',
-              display: 'none'
-            }}
-            className="mobile-menu-btn"
-          />
         </div>
-      </AntHeader>
 
-      {/* Mobile Drawer */}
+        {/* Mobile Menu Button */}
+        <Button
+          type="text"
+          icon={<MenuOutlined />}
+          onClick={() => setMobileMenuVisible(true)}
+          style={{
+            height: '40px',
+            width: '40px',
+            borderRadius: '8px'
+          }}
+          className="mobile-menu-btn"
+        />
+      </div>
+
+      {/* Mobile Menu Drawer */}
       <Drawer
         title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>🎓</span>
-            <span style={{ color: '#667eea', fontWeight: 700 }}>SWD Academy</span>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ 
+              fontSize: '20px', 
+              marginRight: '8px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              🎓
+            </div>
+            <span style={{ 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 600
+            }}>
+              SWD Academy
+            </span>
           </div>
         }
         placement="right"
@@ -195,31 +283,41 @@ export const Header: React.FC<HeaderProps> = ({
         open={mobileMenuVisible}
         width={280}
       >
+        {isLoggedIn && (
+          <div style={{
+            padding: '16px',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            borderRadius: '12px',
+            marginBottom: '16px',
+            textAlign: 'center'
+          }}>
+            <Avatar 
+              size={48} 
+              icon={<UserOutlined />}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                marginBottom: '8px'
+              }}
+            />
+            <div style={{ fontWeight: '500', color: '#1f2937' }}>
+              {userName || (userType === 'admin' ? 'Quản trị viên' : 'Sinh viên')}
+            </div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+              {userType === 'admin' ? 'Quản trị viên' : 'Sinh viên'}
+            </div>
+          </div>
+        )}
+
         <Menu
           mode="vertical"
-          style={{ border: 'none' }}
-        >
-          {!isLoggedIn && (
-            <Menu.Item 
-              key="login" 
-              icon={<LoginOutlined />}
-              onClick={onLoginClick}
-              style={{ marginTop: '16px', color: '#667eea' }}
-            >
-              Đăng nhập
-            </Menu.Item>
-          )}
-        </Menu>
+          items={mobileMenuItems}
+          onClick={handleMobileMenuClick}
+          style={{
+            border: 'none',
+            background: 'transparent'
+          }}
+        />
       </Drawer>
-
-      {/* CSS for responsive */}
-      <style>{`
-        @media (max-width: 767px) {
-          .mobile-menu-btn {
-            display: inline-flex !important;
-          }
-        }
-      `}</style>
-    </>
+    </AntHeader>
   );
 };
