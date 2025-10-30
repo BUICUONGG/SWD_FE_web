@@ -10,3 +10,7 @@ export { Input } from 'antd';
 export { Typography } from 'antd';
 export { Space } from 'antd';
 export { Row, Col } from 'antd';
+
+// Custom components
+export { AppLayout } from './AppLayout';
+export { AdminProtectedRoute, StudentProtectedRoute, PublicRoute } from './ProtectedRoute';
