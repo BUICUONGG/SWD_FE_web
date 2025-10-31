@@ -16,7 +16,14 @@ import {
   Timeline,
   Alert,
   Empty,
-  Tooltip
+  Tooltip,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  DatePicker,
+  Select,
+  message
 } from 'antd';
 import {
   BookOutlined,
@@ -32,7 +39,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { userService, isApiError, isUserResponse } from '../services/userService';
-import { courseService, isCourseListResponse } from '../services/courseService';
+import { courseService, isCourseListResponse, isCourseResponse } from '../services/courseService';
 import type { User } from '../types/user';
 import type { Course } from '../types/course';
 
@@ -51,6 +58,9 @@ const MentorDashboard: React.FC = () => {
   const [mentor, setMentor] = useState<User | null>(null);
   const [courses, setCourses] = useState<MentorCourse[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createForm] = Form.useForm();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -95,6 +105,70 @@ const MentorDashboard: React.FC = () => {
 
     fetchDashboardData();
   }, []);
+
+  const handleCreateCourse = async (values: any) => {
+    setCreateLoading(true);
+    try {
+      const courseData = {
+        code: values.code?.trim(),
+        name: values.name?.trim(),
+        maxStudents: parseInt(values.maxStudents),
+        teamFormationDeadline: values.teamFormationDeadline?.format('YYYY-MM-DD'),
+        status: values.status || 'UPCOMING',
+        mentorId: mentor?.userId || 0,
+        subjectId: parseInt(values.subjectId) || 1,
+        semesterId: parseInt(values.semesterId) || 1,
+      };
+
+      // Validate required fields
+      if (!courseData.code || !courseData.name || !courseData.teamFormationDeadline) {
+        message.error('Vui lòng điền tất cả các trường bắt buộc');
+        return;
+      }
+
+      console.log('Creating course with data:', courseData);
+      const response = await courseService.createCourse(courseData);
+      
+      if (isApiError(response)) {
+        console.error('API Error:', response);
+        message.error(`Lỗi: ${response.message || 'Tạo khóa học thất bại'}`);
+        return;
+      }
+
+      if (isCourseResponse(response)) {
+        console.log('Course created successfully:', response.data);
+        message.success('Tạo khóa học thành công!');
+        setCreateModalVisible(false);
+        createForm.resetFields();
+        
+        // Fetch updated courses list instead of full page reload
+        try {
+          const coursesResponse = await courseService.getAllCourses();
+          if (!isApiError(coursesResponse) && isCourseListResponse(coursesResponse)) {
+            const mentorCourses: MentorCourse[] = coursesResponse.data
+              .filter(course => course.mentorName === mentor?.fullName)
+              .map(course => ({
+                ...course,
+                enrollmentCount: course.currentStudents || 0,
+                approvedEnrollments: Math.floor((course.currentStudents || 0) * 0.9),
+                pendingEnrollments: Math.ceil((course.currentStudents || 0) * 0.1),
+                completedEnrollments: Math.floor((course.currentStudents || 0) * 0.7)
+              }));
+            setCourses(mentorCourses);
+          }
+        } catch (err) {
+          console.error('Failed to refresh courses:', err);
+          // Fallback: reload page
+          setTimeout(() => window.location.reload(), 1000);
+        }
+      }
+    } catch (err) {
+      console.error('Error creating course:', err);
+      message.error(`Lỗi: ${err instanceof Error ? err.message : 'Có lỗi xảy ra khi tạo khóa học'}`);
+    } finally {
+      setCreateLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -415,7 +489,7 @@ const MentorDashboard: React.FC = () => {
           {/* Quick Actions */}
           <Card title="🚀 Thao tác nhanh">
             <Space direction="vertical" style={{ width: '100%' }}>
-              <Button type="primary" block size="large">
+              <Button type="primary" block size="large" onClick={() => setCreateModalVisible(true)}>
                 ➕ Tạo khóa học mới
               </Button>
               <Button block size="large">
@@ -428,6 +502,86 @@ const MentorDashboard: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Create Course Modal */}
+      <Modal
+        title="Tạo khóa học mới"
+        open={createModalVisible}
+        onOk={() => createForm.submit()}
+        onCancel={() => setCreateModalVisible(false)}
+        loading={createLoading}
+        width={600}
+      >
+        <Form
+          form={createForm}
+          layout="vertical"
+          onFinish={handleCreateCourse}
+        >
+          <Form.Item
+            label="Mã khóa học"
+            name="code"
+            rules={[{ required: true, message: 'Vui lòng nhập mã khóa học!' }]}
+          >
+            <Input placeholder="VD: CS445" />
+          </Form.Item>
+
+          <Form.Item
+            label="Tên khóa học"
+            name="name"
+            rules={[{ required: true, message: 'Vui lòng nhập tên khóa học!' }]}
+          >
+            <Input placeholder="VD: Lập trình React" />
+          </Form.Item>
+
+          <Form.Item
+            label="Sức chứa tối đa"
+            name="maxStudents"
+            rules={[{ required: true, message: 'Vui lòng nhập sức chứa!' }]}
+          >
+            <InputNumber min={1} max={999} placeholder="VD: 50" />
+          </Form.Item>
+
+          <Form.Item
+            label="Hạn cuối tạo nhóm"
+            name="teamFormationDeadline"
+            rules={[{ required: true, message: 'Vui lòng chọn hạn cuối!' }]}
+          >
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            label="Trạng thái"
+            name="status"
+            initialValue="UPCOMING"
+          >
+            <Select
+              options={[
+                { label: 'Sắp tới', value: 'UPCOMING' },
+                { label: 'Mở đăng ký', value: 'OPEN' },
+                { label: 'Đang diễn ra', value: 'IN_PROGRESS' },
+              ]}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="ID Chủ đề (Subject ID)"
+            name="subjectId"
+            initialValue={1}
+            rules={[{ required: true, message: 'Vui lòng nhập Subject ID!' }]}
+          >
+            <InputNumber min={1} placeholder="VD: 1" />
+          </Form.Item>
+
+          <Form.Item
+            label="ID Kỳ học (Semester ID)"
+            name="semesterId"
+            initialValue={1}
+            rules={[{ required: true, message: 'Vui lòng nhập Semester ID!' }]}
+          >
+            <InputNumber min={1} placeholder="VD: 1" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
