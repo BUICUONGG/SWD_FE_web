@@ -37,6 +37,22 @@ export const StudentProtectedRoute: React.FC<ProtectedRouteProps> = ({ children 
   return <>{children}</>;
 };
 
+// Protected Route Component cho Mentor
+export const MentorProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const token = TokenStorage.getAccessToken();
+  
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const user = getUserFromToken(token);
+  if (!user || !user.isMentor) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 // Public Route - chuyển hướng nếu đã đăng nhập
 export const PublicRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const token = TokenStorage.getAccessToken();
@@ -48,6 +64,9 @@ export const PublicRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     }
     if (user?.isStudent) {
       return <Navigate to="/student/dashboard" replace />;
+    }
+    if (user?.isMentor) {
+      return <Navigate to="/mentor/dashboard" replace />;
     }
   }
 

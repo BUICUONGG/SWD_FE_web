@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TokenStorage, getUserFromToken } from '../utils/jwt';
 
-type UserType = "admin" | "student" | null;
+type UserType = "admin" | "student" | "mentor" | null;
 
 interface UserInfo {
   type: UserType;

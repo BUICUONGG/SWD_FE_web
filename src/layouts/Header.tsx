@@ -16,7 +16,7 @@ const { Title } = Typography;
 
 interface HeaderProps {
   isLoggedIn?: boolean;
-  userType?: 'admin' | 'student' | null;
+  userType?: 'admin' | 'student' | 'mentor' | null;
   userName?: string;
   onLogout?: () => void;
 }
@@ -36,6 +36,8 @@ export const Header: React.FC<HeaderProps> = ({
         navigate('/admin/dashboard');
       } else if (userType === 'student') {
         navigate('/student/dashboard');
+      } else if (userType === 'mentor') {
+        navigate('/mentor/dashboard');
       }
     } else if (key === 'profile') {
       // Navigate to profile based on user type
@@ -43,6 +45,8 @@ export const Header: React.FC<HeaderProps> = ({
         navigate('/admin/profile');
       } else if (userType === 'student') {
         navigate('/student/profile');
+      } else if (userType === 'mentor') {
+        navigate('/mentor/profile');
       }
     } else if (key === 'logout') {
       onLogout?.();
@@ -52,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
   const userMenuItems = [
     {
       key: 'dashboard',
-      label: userType === 'admin' ? 'Quản trị' : 'Bảng điều khiển',
+      label: userType === 'admin' ? 'Quản trị' : userType === 'mentor' ? 'Quản lý khóa học' : 'Bảng điều khiển',
       icon: <DashboardOutlined />,
     },
     {
@@ -104,6 +108,8 @@ export const Header: React.FC<HeaderProps> = ({
         navigate('/admin/dashboard');
       } else if (userType === 'student') {
         navigate('/student/dashboard');
+      } else if (userType === 'mentor') {
+        navigate('/mentor/dashboard');
       }
     } else if (key === 'logout') {
       onLogout?.();

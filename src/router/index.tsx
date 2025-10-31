@@ -1,9 +1,9 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { HomePage, LoginPage, RegisterPage, AdminDashboard, StudentDashboard, StudentCourses, StudentClasses, StudentSchedule, StudentGrades } from '../pages';
+import { HomePage, LoginPage, RegisterPage, AdminDashboard, StudentDashboard, StudentCourses, StudentCourseExplorer, StudentClasses, StudentSchedule, StudentGrades, StudentGroups, MentorDashboard, MentorCourseManagement } from '../pages';
 import UserProfile from '../pages/UserProfile';
 import AdminProfile from '../pages/AdminProfile';
-import { AdminProtectedRoute, StudentProtectedRoute, PublicRoute } from '../components/ProtectedRoute';
+import { AdminProtectedRoute, StudentProtectedRoute, MentorProtectedRoute, PublicRoute } from '../components/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
@@ -83,6 +83,14 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: "discover",
+            element: (
+              <StudentProtectedRoute>
+                <StudentCourseExplorer />
+              </StudentProtectedRoute>
+            ),
+          },
+          {
             path: "classes",
             element: (
               <StudentProtectedRoute>
@@ -104,6 +112,51 @@ export const router = createBrowserRouter([
               <StudentProtectedRoute>
                 <StudentGrades />
               </StudentProtectedRoute>
+            ),
+          },
+          {
+            path: "groups",
+            element: (
+              <StudentProtectedRoute>
+                <StudentGroups />
+              </StudentProtectedRoute>
+            ),
+          },
+        ],
+      },
+      {
+        path: "mentor",
+        children: [
+          {
+            path: "dashboard",
+            element: (
+              <MentorProtectedRoute>
+                <MentorDashboard />
+              </MentorProtectedRoute>
+            ),
+          },
+          {
+            path: "profile",
+            element: (
+              <MentorProtectedRoute>
+                <UserProfile />
+              </MentorProtectedRoute>
+            ),
+          },
+          {
+            path: "course/:courseId",
+            element: (
+              <MentorProtectedRoute>
+                <MentorCourseManagement />
+              </MentorProtectedRoute>
+            ),
+          },
+          {
+            path: "course/:courseId/students",
+            element: (
+              <MentorProtectedRoute>
+                <MentorCourseManagement />
+              </MentorProtectedRoute>
             ),
           },
         ],

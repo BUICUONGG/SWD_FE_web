@@ -6,7 +6,7 @@ export interface JWTPayload {
   exp: number; // expiration timestamp
   iat: number; // issued at timestamp
   jti: string; // JWT ID
-  scope: 'ADMIN' | 'STUDENT'; // user role
+  scope: 'ADMIN' | 'STUDENT' | 'MENTOR'; // user role
 }
 
 export interface DecodedJWT {
@@ -60,7 +60,8 @@ export const getUserFromToken = (token: string) => {
     email: decoded.payload.sub,
     role: decoded.payload.scope,
     isAdmin: decoded.payload.scope === 'ADMIN',
-    isStudent: decoded.payload.scope === 'STUDENT'
+    isStudent: decoded.payload.scope === 'STUDENT',
+    isMentor: decoded.payload.scope === 'MENTOR'
   };
 };
 

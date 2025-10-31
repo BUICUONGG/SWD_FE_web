@@ -25,16 +25,21 @@ const LoginPage: React.FC<LoginPageProps> = ({
   const [form] = Form.useForm();
 
   // Fill demo account data
-  const fillDemoAccount = (type: 'admin' | 'student') => {
+  const fillDemoAccount = (type: 'admin' | 'student' | 'mentor') => {
     if (type === 'admin') {
       form.setFieldsValue({
         email: 'admin@admin.com',
         password: 'admin'
       });
-    } else {
+    } else if (type === 'student') {
       form.setFieldsValue({
         email: 'student@student.com',
         password: 'student'
+      });
+    } else if (type === 'mentor') {
+      form.setFieldsValue({
+        email: 'mentor@mentor.com',
+        password: 'mentor'
       });
     }
   };
@@ -80,6 +85,9 @@ const LoginPage: React.FC<LoginPageProps> = ({
           } else if (user.isStudent) {
             if (onStudentLogin) onStudentLogin(user.email);
             navigate('/student/dashboard', { replace: true });
+          } else if (user.isMentor) {
+            message.success(`Chào mừng giảng viên ${user.email}!`);
+            navigate('/mentor/dashboard', { replace: true });
           }
         }
       }
@@ -235,6 +243,18 @@ const LoginPage: React.FC<LoginPageProps> = ({
               }}
             >
               👨‍🎓 Student (student@student.com / student)
+            </Button>
+            <Button 
+              size="small" 
+              block 
+              onClick={() => fillDemoAccount('mentor')}
+              style={{ 
+                borderRadius: '6px',
+                borderColor: '#d1d5db',
+                color: '#374151'
+              }}
+            >
+              👨‍🏫 Mentor (mentor@mentor.com / mentor)
             </Button>
           </Space>
         </div>

@@ -342,7 +342,7 @@ const StudentDashboard: React.FC = () => {
                   icon={<BookOutlined />}
                   block 
                   size="large"
-                  onClick={() => navigate('/student/courses')}
+                  onClick={() => navigate('/student/discover')}
                 >
                   📚 Khóa học
                 </Button>
@@ -350,9 +350,9 @@ const StudentDashboard: React.FC = () => {
                   icon={<CalendarOutlined />}
                   block 
                   size="large"
-                  onClick={() => navigate('/student/classes')}
+                  onClick={() => navigate('/student/groups')}
                 >
-                  🏫 Lớp học
+                  👥 Nhóm học
                 </Button>
                 <Button 
                   icon={<ClockCircleOutlined />}
