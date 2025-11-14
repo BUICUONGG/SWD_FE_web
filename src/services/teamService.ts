@@ -119,25 +119,35 @@ class TeamService {
   // POST /api/teams/create - Create new team
   async createTeam(enrollmentId: number, teamName: string): Promise<TeamResponse | ApiErrorResponse> {
     try {
-      const response = await fetch(`${API_BASE}/create?enrollmentId=${enrollmentId}&teamName=${encodeURIComponent(teamName)}`, {
+      // Backend: POST /api/teams/create?teamName=X
+      // The enrollmentId is extracted from JWT token by backend
+      console.log('🔨 [createTeam] Creating team:', { teamName, enrollmentId });
+      
+      const response = await fetch(`${API_BASE}/create?teamName=${encodeURIComponent(teamName)}`, {
         method: 'POST',
         headers: this.getAuthHeaders()
       });
 
+      console.log('📊 [createTeam] Response status:', response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [createTeam] Error:', errorText);
         return {
           success: false,
-          message: `Không thể tạo nhóm (${response.status})`
+          message: `Không thể tạo nhóm (${response.status}): ${errorText.substring(0, 100)}`
         };
       }
 
       const data = await this.safeJsonParse(response);
+      console.log('✅ [createTeam] Success:', data);
+      
       if (data.success && data.data) {
         return { ...data, data: this.transformTeam(data.data) };
       }
       return data;
     } catch (error) {
-      console.error('Error creating team:', error);
+      console.error('❌ [createTeam] Exception:', error);
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Lỗi kết nối khi tạo nhóm'
@@ -248,11 +258,11 @@ class TeamService {
     }
   }
 
-  // GET /team?courseId=X&mentorId=Y - Get teams in course
-  async getTeamsByCourse(courseId: number, mentorId: number): Promise<TeamListResponse | ApiErrorResponse> {
+  // GET /team?CourseId=X - Get teams in course (backend requires CourseId with capital C)
+  async getTeamsByCourse(courseId: number, mentorId?: number): Promise<TeamListResponse | ApiErrorResponse> {
     try {
-      console.log(`Fetching teams for course ${courseId}, mentor ${mentorId}`);
-      const url = `${API_BASE}?courseId=${courseId}&mentorId=${mentorId}`;
+      console.log(`Fetching teams for course ${courseId}`);
+      const url = `${API_BASE}?CourseId=${courseId}`;
       console.log('Request URL:', url);
       
       const response = await fetch(url, {

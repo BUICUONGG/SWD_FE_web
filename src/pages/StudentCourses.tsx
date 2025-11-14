@@ -106,7 +106,7 @@ const StudentCourses: React.FC = () => {
               maxStudents: courseResponse.data.maxStudents,
               currentStudents: courseResponse.data.currentStudents,
               enrollmentId: enrollment.enrollmentId,
-              enrollmentStatus: enrollment.status,
+              enrollmentStatus: enrollment.status || 'APPROVED', // Default APPROVED nếu không có
               enrollmentDate: enrollment.enrollmentDate
             };
           }

@@ -222,6 +222,15 @@ const StudentDashboard: React.FC = () => {
                   icon={<BookOutlined />}
                   block 
                   size="large"
+                  onClick={() => navigate('/student/applications')}
+                  style={{ background: '#f0f5ff', borderColor: '#adc6ff' }}
+                >
+                  📋 Đơn của tôi
+                </Button>
+                <Button 
+                  icon={<BookOutlined />}
+                  block 
+                  size="large"
                   onClick={() => navigate('/student/discover')}
                 >
                   📚 Khóa học của tôi

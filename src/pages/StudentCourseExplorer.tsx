@@ -33,106 +33,57 @@ import {
 import {
   userService,
   semesterService,
-  subjectService,
   isUserApiError,
   isSemesterApiError,
-  isSubjectApiError,
 } from '../services';
+import StudentLayout from '../components/StudentLayout';
+import { courseService, isApiError as isCourseApiError, isCourseListResponse } from '../services/courseService';
+import { enrollmentService, isApiError as isEnrollmentApiError, isEnrollmentListResponse } from '../services/enrollmentService';
 import type { User } from '../types/user';
 import type { Semester } from '../types/semester';
-import type { Subject } from '../services/subjectService';
+import type { Course } from '../types/course';
+import type { Enrollment } from '../types/enrollment';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
 const { Option } = Select;
-
-// Extended Subject interface for course display
-interface CourseSubject extends Subject {
-  maxStudents?: number;
-  currentStudents?: number;
-  teamFormationDeadline?: string;
-  mentorId?: string;
-  mentorName?: string;
-  semesterId?: string;
-  semesterCode?: string;
-}
-
-interface Enrollment {
-  id: number;
-  courseId: number;
-  studentId: number;
-  enrollmentDate: string;
-  status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'DROPPED';
-  course: CourseSubject;
-}
 
 const StudentCourseExplorer: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
   const [enrolling, setEnrolling] = useState<number | null>(null);
   
-  // Data states
   const [profile, setProfile] = useState<User | null>(null);
   const [currentSemester, setCurrentSemester] = useState<Semester | null>(null);
-  const [availableCourses, setAvailableCourses] = useState<CourseSubject[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
   const [myEnrollments, setMyEnrollments] = useState<Enrollment[]>([]);
   
-  // UI states
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('ACTIVE');
-  const [selectedSubject, setSelectedSubject] = useState<string>('');
-  const [courseDetailModal, setCourseDetailModal] = useState<CourseSubject | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [courseDetailModal, setCourseDetailModal] = useState<Course | null>(null);
 
   const loadInitialData = async () => {
     try {
       setLoading(true);
       
-      // Load profile
       const profileResponse = await userService.getCurrentUser();
       if (isUserApiError(profileResponse)) {
-        console.warn('Profile API failed, using fallback');
-        setProfile({
-          userId: 1,
-          email: 'student@example.com',
-          fullName: 'Nguyễn Văn A',
-          avatarUrl: '',
-          provider: 'LOCAL',
-          gender: 'MALE',
-          dob: '2000-01-01',
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z',
-        });
-        message.info('Sử dụng dữ liệu demo cho profile');
-      } else {
-        setProfile(profileResponse.data);
-        message.success('Tải profile thành công');
+        message.error('Không thể tải thông tin người dùng: ' + profileResponse.message);
+        return;
       }
+      setProfile(profileResponse.data);
       
-      // Load current semester
       const semesterResponse = await semesterService.getAllSemesters();
-      if (isSemesterApiError(semesterResponse)) {
-        console.warn('Semester API failed, using fallback');
-        setCurrentSemester({
-          semesterId: 1,
-          code: 'FALL2024',
-          name: 'Học kỳ Fall 2024',
-          year: 2024,
-          term: 'FALL',
-          startDate: '2024-09-01',
-          endDate: '2024-12-31',
-        });
-        message.info('Sử dụng dữ liệu demo cho kỳ học');
-      } else {
+      if (!isSemesterApiError(semesterResponse)) {
         setCurrentSemester(semesterResponse.data[0] || null);
-        message.success('Tải kỳ học thành công');
       }
       
-      // Load courses and enrollments
-      await Promise.all([
-        loadCourses(),
-        profile ? loadMyEnrollments(profile.userId.toString()) : Promise.resolve()
-      ]);
-      
+      if (profileResponse.data) {
+        await Promise.all([
+          loadCourses(),
+          loadMyEnrollments(profileResponse.data.userId)
+        ]);
+      }
     } catch (error) {
       console.error('Error loading initial data:', error);
       message.error('Có lỗi xảy ra khi tải dữ liệu');
@@ -145,68 +96,25 @@ const StudentCourseExplorer: React.FC = () => {
     try {
       setSearchLoading(true);
       
-      // Try to load subjects from API
-      const subjectsResponse = await subjectService.getAllSubjects();
-      let subjects: Subject[] = [];
-      
-      if (isSubjectApiError(subjectsResponse)) {
-        console.warn('Subjects API failed, using fallback data');
-        // Mock subjects when API is not available
-        subjects = [
-          {
-            id: '1',
-            code: 'CS445',
-            name: 'Lập trình React nâng cao',
-            description: 'Khóa học React.js nâng cao với TypeScript và các thư viện hiện đại',
-            credits: 3,
-            prerequisites: ['CS301', 'CS302'],
-            status: 'ACTIVE',
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: '2024-01-01T00:00:00Z',
-          },
-          {
-            id: '2',
-            code: 'CS440',
-            name: 'Thiết kế UI/UX hiện đại',
-            description: 'Thiết kế giao diện người dùng và trải nghiệm người dùng',
-            credits: 3,
-            prerequisites: ['CS201'],
-            status: 'ACTIVE',
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: '2024-01-01T00:00:00Z',
-          },
-          {
-            id: '3',
-            code: 'CS435',
-            name: 'Quản trị dự án phần mềm',
-            description: 'Phương pháp quản lý và điều hành dự án phần mềm',
-            credits: 4,
-            prerequisites: ['CS401'],
-            status: 'ACTIVE',
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: '2024-01-01T00:00:00Z',
-          },
-        ];
-        message.info('Sử dụng dữ liệu demo cho môn học');
+      let coursesResponse;
+      if (currentSemester?.semesterId) {
+        coursesResponse = await courseService.getCoursesBySemester(currentSemester.semesterId);
       } else {
-        subjects = subjectsResponse.data;
-        message.success('Tải danh sách môn học thành công');
+        coursesResponse = await courseService.getAllCourses();
       }
       
-      // Convert subjects to course subjects with additional course info
-      const mockCourses: CourseSubject[] = subjects.map((subject, index) => ({
-        ...subject,
-        maxStudents: [30, 25, 35][index] || 30,
-        currentStudents: [25, 20, 35][index] || 20,
-        teamFormationDeadline: [`2024-11-15T23:59:59Z`, `2024-11-20T23:59:59Z`, `2024-11-10T23:59:59Z`][index] || '2024-11-30T23:59:59Z',
-        mentorId: `${index + 1}`,
-        mentorName: ['TS. Nguyễn Văn A', 'ThS. Trần Thị B', 'TS. Lê Văn C'][index] || 'Giảng viên',
-        semesterId: '1',
-        semesterCode: 'FALL2024',
-      }));
+      if (isCourseApiError(coursesResponse)) {
+        message.error('Không thể tải danh sách khóa học: ' + coursesResponse.message);
+        setAvailableCourses([]);
+        return;
+      }
+      
+      if (!isCourseListResponse(coursesResponse)) {
+        setAvailableCourses([]);
+        return;
+      }
 
-      // Filter based on search criteria
-      let filteredCourses = mockCourses;
+      let filteredCourses = coursesResponse.data;
       
       if (searchKeyword) {
         filteredCourses = filteredCourses.filter(course => 
@@ -220,83 +128,56 @@ const StudentCourseExplorer: React.FC = () => {
         filteredCourses = filteredCourses.filter(course => course.status === selectedStatus);
       }
       
-      if (selectedSubject) {
-        filteredCourses = filteredCourses.filter(course => course.code === selectedSubject);
-      }
-      
       setAvailableCourses(filteredCourses);
-      
     } catch (error) {
       console.error('Error loading courses:', error);
       message.error('Có lỗi xảy ra khi tải danh sách lớp học');
+      setAvailableCourses([]);
     } finally {
       setSearchLoading(false);
     }
   };
 
-  const loadMyEnrollments = async (userId: string) => {
+  const loadMyEnrollments = async (userId: number) => {
     try {
-      // Mock enrollments
-      const mockEnrollments: Enrollment[] = [
-        {
-          id: 1,
-          courseId: 3,
-          studentId: parseInt(userId) || 1,
-          enrollmentDate: '2024-09-01',
-          status: 'APPROVED',
-          course: {
-            id: '3',
-            code: 'CS435',
-            name: 'Quản trị dự án phần mềm',
-            description: 'Phương pháp quản lý và điều hành dự án phần mềm',
-            credits: 4,
-            prerequisites: ['CS401'],
-            status: 'ACTIVE',
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: '2024-01-01T00:00:00Z',
-            maxStudents: 35,
-            currentStudents: 35,
-            teamFormationDeadline: '2024-11-10T23:59:59Z',
-            mentorId: '3',
-            mentorName: 'TS. Lê Văn C',
-            semesterId: '1',
-            semesterCode: 'FALL2024',
-          },
-        },
-      ];
+      const enrollmentsResponse = await enrollmentService.getEnrollmentsByUser(userId);
       
-      setMyEnrollments(mockEnrollments);
+      if (isEnrollmentApiError(enrollmentsResponse)) {
+        console.error('Failed to load enrollments:', enrollmentsResponse.message);
+        setMyEnrollments([]);
+        return;
+      }
+      
+      if (isEnrollmentListResponse(enrollmentsResponse)) {
+        setMyEnrollments(enrollmentsResponse.data);
+      }
     } catch (error) {
       console.error('Error loading enrollments:', error);
+      setMyEnrollments([]);
     }
   };
 
-  const handleEnrollCourse = async (subjectId: string) => {
+  const handleEnrollCourse = async (courseId: number) => {
     if (!profile?.userId) {
       message.error('Không thể xác định thông tin sinh viên');
       return;
     }
 
     try {
-      setEnrolling(parseInt(subjectId));
+      setEnrolling(courseId);
       
-      // Mock enrollment success
-      message.success('Đăng ký lớp học thành công! Vui lòng chờ phê duyệt.');
+      const response = await enrollmentService.createEnrollment({
+        userId: profile.userId,
+        courseId: courseId
+      });
       
-      // Add to enrollments list
-      const course = availableCourses.find(c => c.id === subjectId);
-      if (course) {
-        const newEnrollment: Enrollment = {
-          id: Date.now(),
-          courseId: parseInt(subjectId),
-          studentId: profile.userId || 1,
-          enrollmentDate: new Date().toISOString().split('T')[0],
-          status: 'PENDING',
-          course,
-        };
-        setMyEnrollments(prev => [...prev, newEnrollment]);
+      if (isEnrollmentApiError(response)) {
+        message.error(response.message || 'Đăng ký lớp học thất bại');
+        return;
       }
       
+      message.success('Đăng ký lớp học thành công! Vui lòng chờ phê duyệt.');
+      await loadMyEnrollments(profile.userId);
     } catch (error) {
       console.error('Error enrolling course:', error);
       message.error('Có lỗi xảy ra khi đăng ký lớp học');
@@ -305,25 +186,23 @@ const StudentCourseExplorer: React.FC = () => {
     }
   };
 
-  const isEnrolled = (subjectId: string): boolean => {
+  const isEnrolled = (courseId: number): boolean => {
     return myEnrollments.some(enrollment => 
-      enrollment.course.id === subjectId && 
+      enrollment.courseId === courseId && 
       ['PENDING', 'APPROVED'].includes(enrollment.status)
     );
   };
 
-  const canEnroll = (course: CourseSubject): boolean => {
-    return !isEnrolled(course.id) && 
-           course.status === 'ACTIVE' && 
-           (course.currentStudents || 0) < (course.maxStudents || 0);
+  const canEnroll = (course: Course): boolean => {
+    return !isEnrolled(course.courseId) && 
+           (course.status === 'OPEN' || course.status === 'UPCOMING') && 
+           course.currentStudents < course.maxStudents;
   };
 
   const getStatusColor = (status: string) => {
     const statusMap: Record<string, string> = {
-      'ACTIVE': 'green',
-      'INACTIVE': 'red',
-      'UPCOMING': 'blue',
       'OPEN': 'green',
+      'UPCOMING': 'blue',
       'IN_PROGRESS': 'orange',
       'COMPLETED': 'default',
       'CANCELLED': 'red',
@@ -333,10 +212,8 @@ const StudentCourseExplorer: React.FC = () => {
 
   const getStatusText = (status: string) => {
     const statusMap: Record<string, string> = {
-      'ACTIVE': 'Hoạt động',
-      'INACTIVE': 'Không hoạt động',
+      'OPEN': 'Đang mở',
       'UPCOMING': 'Sắp mở',
-      'OPEN': 'Đang mở đăng ký',
       'IN_PROGRESS': 'Đang diễn ra',
       'COMPLETED': 'Đã kết thúc',
       'CANCELLED': 'Đã hủy',
@@ -352,14 +229,16 @@ const StudentCourseExplorer: React.FC = () => {
     if (!loading) {
       loadCourses();
     }
-  }, [searchKeyword, selectedStatus, selectedSubject]);
+  }, [searchKeyword, selectedStatus]);
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
-        <Spin size="large" />
-        <div style={{ marginTop: 16 }}>Đang tải dữ liệu...</div>
-      </div>
+      <StudentLayout>
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: 16 }}>Đang tải dữ liệu...</div>
+        </div>
+      </StudentLayout>
     );
   }
 
@@ -385,7 +264,7 @@ const StudentCourseExplorer: React.FC = () => {
       render: (name: string) => (
         <Space>
           <UserOutlined />
-          {name}
+          {name || 'Chưa có'}
         </Space>
       ),
     },
@@ -394,16 +273,17 @@ const StudentCourseExplorer: React.FC = () => {
       key: 'enrollment',
       width: 100,
       align: 'center' as const,
-      render: (_: any, record: CourseSubject) => (
+      render: (_: any, record: Course) => (
         <Space direction="vertical" size="small">
-          <Text>{record.currentStudents || 0}/{record.maxStudents || 0}</Text>
+          <Text>{record.currentStudents}/{record.maxStudents}</Text>
           <div style={{ width: '60px', height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px' }}>
             <div 
               style={{ 
-                width: `${((record.currentStudents || 0) / (record.maxStudents || 1)) * 100}%`,
-                height: '100%',
-                backgroundColor: (record.currentStudents || 0) >= (record.maxStudents || 0) ? '#ff4d4f' : '#52c41a',
-                borderRadius: '2px'
+                width: `${(record.currentStudents / record.maxStudents) * 100}%`, 
+                height: '100%', 
+                backgroundColor: record.currentStudents >= record.maxStudents ? '#ff4d4f' : '#52c41a',
+                borderRadius: '2px',
+                transition: 'width 0.3s'
               }}
             />
           </div>
@@ -411,24 +291,10 @@ const StudentCourseExplorer: React.FC = () => {
       ),
     },
     {
-      title: 'Hạn đăng ký team',
-      dataIndex: 'teamFormationDeadline',
-      key: 'deadline',
-      width: 150,
-      render: (deadline: string) => (
-        <Space>
-          <ClockCircleOutlined />
-          <Text style={{ fontSize: '12px' }}>
-            {new Date(deadline).toLocaleDateString('vi-VN')}
-          </Text>
-        </Space>
-      ),
-    },
-    {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      width: 130,
+      width: 120,
       render: (status: string) => (
         <Tag color={getStatusColor(status)}>
           {getStatusText(status)}
@@ -436,44 +302,36 @@ const StudentCourseExplorer: React.FC = () => {
       ),
     },
     {
-      title: 'Thao tác',
+      title: 'Hành động',
       key: 'actions',
-      width: 200,
-      render: (_: any, record: CourseSubject) => (
+      width: 180,
+      fixed: 'right' as const,
+      render: (_: any, record: Course) => (
         <Space>
           <Tooltip title="Xem chi tiết">
             <Button
-              size="small"
               icon={<EyeOutlined />}
               onClick={() => setCourseDetailModal(record)}
             />
           </Tooltip>
-          {canEnroll(record) && (
-            <Button
-              size="small"
-              type="primary"
-              icon={<PlusOutlined />}
-              loading={enrolling === parseInt(record.id)}
-              onClick={() => handleEnrollCourse(record.id)}
-            >
-              Đăng ký
-            </Button>
-          )}
-          {isEnrolled(record.id) && (
-            <Tag color="success">Đã đăng ký</Tag>
-          )}
-          {(record.currentStudents || 0) >= (record.maxStudents || 0) && !isEnrolled(record.id) && (
-            <Tag color="error">Đã đầy</Tag>
-          )}
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            loading={enrolling === record.courseId}
+            disabled={!canEnroll(record) || isEnrolled(record.courseId)}
+            onClick={() => handleEnrollCourse(record.courseId)}
+          >
+            {isEnrolled(record.courseId) ? 'Đã đăng ký' : 'Đăng ký'}
+          </Button>
         </Space>
       ),
     },
   ];
 
   return (
-    <div style={{ padding: '24px', minHeight: '100vh', background: '#f0f2f5' }}>
-      {/* Header */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+    <StudentLayout>
+      <div style={{ padding: '24px', minHeight: '100vh', background: '#f0f2f5' }}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col span={24}>
           <Card>
             <Row align="middle" justify="space-between">
@@ -481,18 +339,10 @@ const StudentCourseExplorer: React.FC = () => {
                 <Space align="center">
                   <BookOutlined style={{ fontSize: 24, color: '#1890ff' }} />
                   <div>
-                    <Title level={3} style={{ margin: 0 }}>
-                      Khám phá & Đăng ký Lớp học
-                    </Title>
-                    <Space>
-                      <Text type="secondary">
-                        {profile?.fullName} - Sinh viên
-                      </Text>
-                      <CalendarOutlined />
-                      <Text strong>
-                        {currentSemester?.name}
-                      </Text>
-                    </Space>
+                    <Title level={3} style={{ margin: 0 }}>Khám phá khóa học</Title>
+                    <Text type="secondary">
+                      Kỳ học: {currentSemester?.name || 'N/A'}
+                    </Text>
                   </div>
                 </Space>
               </Col>
@@ -518,7 +368,6 @@ const StudentCourseExplorer: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Search & Filter */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col span={24}>
           <Card title="Tìm kiếm & Bộ lọc">
@@ -529,7 +378,6 @@ const StudentCourseExplorer: React.FC = () => {
                   allowClear
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
-                  onSearch={() => loadCourses()}
                   enterButton={<SearchOutlined />}
                 />
               </Col>
@@ -541,21 +389,10 @@ const StudentCourseExplorer: React.FC = () => {
                   onChange={setSelectedStatus}
                   allowClear
                 >
-                  <Option value="ACTIVE">Hoạt động</Option>
-                  <Option value="INACTIVE">Không hoạt động</Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={6} md={4}>
-                <Select
-                  style={{ width: '100%' }}
-                  placeholder="Môn học"
-                  value={selectedSubject}
-                  onChange={setSelectedSubject}
-                  allowClear
-                >
-                  <Option value="CS445">Lập trình React</Option>
-                  <Option value="CS440">Thiết kế UI/UX</Option>
-                  <Option value="CS435">Quản trị dự án</Option>
+                  <Option value="OPEN">Đang mở</Option>
+                  <Option value="UPCOMING">Sắp mở</Option>
+                  <Option value="IN_PROGRESS">Đang diễn ra</Option>
+                  <Option value="COMPLETED">Đã kết thúc</Option>
                 </Select>
               </Col>
               <Col xs={24} sm={4} md={3}>
@@ -573,7 +410,6 @@ const StudentCourseExplorer: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Course List */}
       <Row gutter={[16, 16]}>
         <Col span={24}>
           <Card 
@@ -610,7 +446,6 @@ const StudentCourseExplorer: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Course Detail Modal */}
       <Modal
         title={
           <Space>
@@ -630,9 +465,9 @@ const StudentCourseExplorer: React.FC = () => {
               key="enroll"
               type="primary"
               icon={<PlusOutlined />}
-              loading={enrolling === parseInt(courseDetailModal.id)}
+              loading={enrolling === courseDetailModal.courseId}
               onClick={() => {
-                handleEnrollCourse(courseDetailModal.id);
+                handleEnrollCourse(courseDetailModal.courseId);
                 setCourseDetailModal(null);
               }}
             >
@@ -647,30 +482,43 @@ const StudentCourseExplorer: React.FC = () => {
               <Descriptions.Item label="Mã lớp">
                 <Text strong>{courseDetailModal.code}</Text>
               </Descriptions.Item>
-              <Descriptions.Item label="Tên lớp học">
+              <Descriptions.Item label="Tên lớp">
                 {courseDetailModal.name}
               </Descriptions.Item>
               <Descriptions.Item label="Giảng viên">
                 <Space>
                   <UserOutlined />
-                  {courseDetailModal.mentorName}
+                  {courseDetailModal.mentorName || 'Chưa có'}
+                </Space>
+              </Descriptions.Item>
+              <Descriptions.Item label="Kỳ học">
+                <Space>
+                  <CalendarOutlined />
+                  {courseDetailModal.semesterCode || 'N/A'}
                 </Space>
               </Descriptions.Item>
               <Descriptions.Item label="Sĩ số">
-                <Space>
-                  <Text>{courseDetailModal.currentStudents || 0}/{courseDetailModal.maxStudents || 0}</Text>
-                  <Tag color={(courseDetailModal.currentStudents || 0) >= (courseDetailModal.maxStudents || 0) ? 'error' : 'success'}>
-                    {(courseDetailModal.currentStudents || 0) >= (courseDetailModal.maxStudents || 0) ? 'Đã đầy' : 'Còn chỗ'}
-                  </Tag>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Text>{courseDetailModal.currentStudents}/{courseDetailModal.maxStudents} sinh viên</Text>
+                  <div style={{ width: '100%', height: '8px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
+                    <div 
+                      style={{ 
+                        width: `${(courseDetailModal.currentStudents / courseDetailModal.maxStudents) * 100}%`, 
+                        height: '100%', 
+                        backgroundColor: courseDetailModal.currentStudents >= courseDetailModal.maxStudents ? '#ff4d4f' : '#52c41a',
+                        borderRadius: '4px',
+                        transition: 'width 0.3s'
+                      }}
+                    />
+                  </div>
                 </Space>
               </Descriptions.Item>
-              <Descriptions.Item label="Hạn đăng ký team">
+              <Descriptions.Item label="Hạn tạo nhóm">
                 <Space>
                   <ClockCircleOutlined />
-                  {courseDetailModal.teamFormationDeadline ? 
-                    new Date(courseDetailModal.teamFormationDeadline).toLocaleString('vi-VN') : 
-                    'Chưa xác định'
-                  }
+                  {courseDetailModal.teamFormationDeadline 
+                    ? new Date(courseDetailModal.teamFormationDeadline).toLocaleString('vi-VN')
+                    : 'Chưa có'}
                 </Space>
               </Descriptions.Item>
               <Descriptions.Item label="Trạng thái">
@@ -679,20 +527,34 @@ const StudentCourseExplorer: React.FC = () => {
                 </Tag>
               </Descriptions.Item>
             </Descriptions>
-
-            {courseDetailModal.status === 'ACTIVE' && (
+            
+            {isEnrolled(courseDetailModal.courseId) && (
               <Alert
-                style={{ marginTop: 16 }}
-                message="Môn học đang hoạt động"
-                description="Bạn có thể đăng ký tham gia môn học này. Sau khi đăng ký thành công, vui lòng chờ phê duyệt từ giảng viên."
+                message="Bạn đã đăng ký lớp học này"
                 type="info"
                 showIcon
+                style={{ marginTop: 16 }}
+              />
+            )}
+            
+            {!canEnroll(courseDetailModal) && !isEnrolled(courseDetailModal.courseId) && (
+              <Alert
+                message="Không thể đăng ký"
+                description={
+                  courseDetailModal.currentStudents >= courseDetailModal.maxStudents 
+                    ? 'Lớp học đã đầy' 
+                    : 'Lớp học không còn mở đăng ký'
+                }
+                type="warning"
+                showIcon
+                style={{ marginTop: 16 }}
               />
             )}
           </div>
         )}
       </Modal>
-    </div>
+      </div>
+    </StudentLayout>
   );
 };
 

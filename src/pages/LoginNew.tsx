@@ -28,18 +28,18 @@ const LoginPage: React.FC<LoginPageProps> = ({
   const fillDemoAccount = (type: 'admin' | 'student' | 'mentor') => {
     if (type === 'admin') {
       form.setFieldsValue({
-        email: 'admin@admin.com',
-        password: 'admin'
+        email: 'admin@fpt.edu.vn',
+        password: 'admin123'
       });
     } else if (type === 'student') {
       form.setFieldsValue({
-        email: 'student@student.com',
-        password: 'student'
+        email: 'student1@fpt.edu.vn',
+        password: 'student123'
       });
     } else if (type === 'mentor') {
       form.setFieldsValue({
-        email: 'mentor@mentor.com',
-        password: 'mentor'
+        email: 'mentor1@fpt.edu.vn',
+        password: 'mentor123'
       });
     }
   };
@@ -230,7 +230,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                 color: '#374151'
               }}
             >
-              👨‍💼 Admin (admin@admin.com / admin)
+              👨‍💼 Admin (admin@fpt.edu.vn / admin123)
             </Button>
             <Button 
               size="small" 
@@ -242,7 +242,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                 color: '#374151'
               }}
             >
-              👨‍🎓 Student (student@student.com / student)
+              👨‍🎓 Student (student1@fpt.edu.vn / student123)
             </Button>
             <Button 
               size="small" 
@@ -254,7 +254,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                 color: '#374151'
               }}
             >
-              👨‍🏫 Mentor (mentor@mentor.com / mentor)
+              👨‍🏫 Mentor (mentor1@fpt.edu.vn / mentor123)
             </Button>
           </Space>
         </div>

@@ -12,6 +12,8 @@ export { default as StudentSchedule } from './StudentSchedule';
 export { default as StudentGrades } from './StudentGrades';
 export { default as StudentGroups } from './StudentGroups';
 export { default as StudentGroupDetail } from './StudentGroupDetail';
+export { default as StudentApplications } from './StudentApplications';
+export { default as StudentIdeas } from './StudentIdeas';
 export { default as UserProfile } from './UserProfile';
 export { default as AdminProfile } from './AdminProfile';
 export { default as MentorDashboard } from './MentorDashboard';

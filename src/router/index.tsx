@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { HomePage, LoginPage, RegisterPage, AdminDashboard, StudentDashboard, StudentCourses, StudentCourseExplorer, StudentClasses, StudentSchedule, StudentGrades, StudentGroups, StudentGroupDetail, MentorDashboard, MentorTeamManagement } from '../pages';
+import { HomePage, LoginPage, RegisterPage, AdminDashboard, StudentDashboard, StudentCourses, StudentCourseExplorer, StudentClasses, StudentSchedule, StudentGrades, StudentGroups, StudentGroupDetail, StudentApplications, MentorDashboard, MentorTeamManagement } from '../pages';
 import MentorCourseManagement from '../pages/MentorCourseManagement';
 import UserProfile from '../pages/UserProfile';
 import AdminProfile from '../pages/AdminProfile';
@@ -120,6 +120,14 @@ export const router = createBrowserRouter([
             element: (
               <StudentProtectedRoute>
                 <StudentGroups />
+              </StudentProtectedRoute>
+            ),
+          },
+          {
+            path: "applications",
+            element: (
+              <StudentProtectedRoute>
+                <StudentApplications />
               </StudentProtectedRoute>
             ),
           },

@@ -16,7 +16,9 @@ import {
   Select,
   Modal,
   Form,
-  message
+  message,
+  Divider,
+  Steps
 } from 'antd';
 import {
   TeamOutlined,
@@ -24,7 +26,9 @@ import {
   CrownOutlined,
   SearchOutlined,
   PlusOutlined,
-  BookOutlined
+  BookOutlined,
+  InfoCircleOutlined,
+  CheckCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import StudentLayout from '../components/StudentLayout';
@@ -32,6 +36,7 @@ import { teamService, isApiError as isTeamApiError, isTeamListResponse } from '.
 import { userService, isApiError, isUserResponse } from '../services/userService';
 import { enrollmentService, isApiError as isEnrollmentApiError, isEnrollmentListResponse } from '../services/enrollmentService';
 import { courseService, isApiError as isCourseApiError, isCourseResponse } from '../services/courseService';
+import { applicationService, isApiError as isApplicationApiError } from '../services/applicationService';
 import type { Team } from '../types/team';
 import type { Enrollment } from '../types/enrollment';
 
@@ -60,17 +65,12 @@ const StudentGroups: React.FC = () => {
         // Fetch current user
         const userResponse = await userService.getCurrentUser();
         if (isApiError(userResponse)) {
-          console.warn('Using sample data:', userResponse.message);
-          setCurrentUserId(1);
-          setEnrollments(getSampleEnrollments());
-          setSelectedCourseId(1);
-          setAllTeams(getSampleAllTeams());
-          setFilteredTeams(getSampleAllTeams());
-          setError('Đang sử dụng dữ liệu mẫu (API không khả dụng)');
+          setError('Không thể lấy thông tin người dùng: ' + userResponse.message);
           return;
         }
         if (!isUserResponse(userResponse)) {
-          throw new Error('Failed to get user info');
+          setError('Không thể lấy thông tin người dùng');
+          return;
         }
         
         const userId = userResponse.data.userId;
@@ -79,40 +79,21 @@ const StudentGroups: React.FC = () => {
         // Fetch user's enrollments
         const enrollmentsResponse = await enrollmentService.getEnrollmentsByUser(userId);
         if (isEnrollmentApiError(enrollmentsResponse)) {
-          console.warn('Could not fetch enrollments, using sample data:', enrollmentsResponse.message);
-          const sampleEnrollments = getSampleEnrollments();
-          setEnrollments(sampleEnrollments);
-          if (sampleEnrollments.length > 0) {
-            setSelectedCourseId(sampleEnrollments[0].courseId);
-          }
-        } else if (isEnrollmentListResponse(enrollmentsResponse)) {
-          const approvedEnrollments = enrollmentsResponse.data.filter((e: Enrollment) => e.status === 'APPROVED');
-          setEnrollments(approvedEnrollments);
+          setError('Không thể lấy danh sách đăng ký: ' + enrollmentsResponse.message);
+          return;
+        }
+        if (isEnrollmentListResponse(enrollmentsResponse)) {
+          // Backend không trả status, nên chỉ lọc isDeleted = false
+          const activeEnrollments = enrollmentsResponse.data.filter((e: Enrollment) => !e.isDeleted);
+          setEnrollments(activeEnrollments);
           
-          if (approvedEnrollments.length > 0) {
-            setSelectedCourseId(approvedEnrollments[0].courseId);
-          } else {
-            // No approved enrollments, use sample data
-            console.warn('No approved enrollments found, using sample data');
-            const sampleEnrollments = getSampleEnrollments();
-            setEnrollments(sampleEnrollments);
-            setSelectedCourseId(sampleEnrollments[0].courseId);
+          if (activeEnrollments.length > 0) {
+            setSelectedCourseId(activeEnrollments[0].courseId);
           }
         }
-
-        // Fetch all teams - wait for enrollments to be set first
-        // Will be called by useEffect when selectedCourseId changes
-        
       } catch (err) {
         console.error('Error fetching data:', err);
-        setCurrentUserId(1);
-        const sampleEnrollments = getSampleEnrollments();
-        setEnrollments(sampleEnrollments);
-        setSelectedCourseId(sampleEnrollments[0].courseId);
-        const sampleTeams = getSampleAllTeams();
-        setAllTeams(sampleTeams);
-        setFilteredTeams(sampleTeams);
-        setError('Có lỗi xảy ra, đang sử dụng dữ liệu mẫu');
+        setError('Có lỗi xảy ra khi tải dữ liệu');
       } finally {
         setLoading(false);
       }
@@ -121,150 +102,36 @@ const StudentGroups: React.FC = () => {
     fetchData();
   }, []);
 
-  const getSampleEnrollments = (): Enrollment[] => [
-    {
-      enrollmentId: 1,
-      userId: 1,
-      userName: 'Nguyễn Văn A',
-      userEmail: 'student1@fpt.edu.vn',
-      courseId: 1,
-      courseName: 'SWD392 - Web Development',
-      courseCode: 'SWD392',
-      status: 'APPROVED',
-      enrollmentDate: new Date().toISOString(),
-      approvedDate: new Date().toISOString()
-    },
-    {
-      enrollmentId: 2,
-      userId: 1,
-      userName: 'Nguyễn Văn A',
-      userEmail: 'student1@fpt.edu.vn',
-      courseId: 2,
-      courseName: 'AI301 - Artificial Intelligence',
-      courseCode: 'AI301',
-      status: 'APPROVED',
-      enrollmentDate: new Date().toISOString(),
-      approvedDate: new Date().toISOString()
-    }
-  ];
-
-  const getSampleAllTeams = (): Team[] => [
-    {
-      id: 1,
-      name: 'Team Innovation',
-      courseId: 1,
-      courseName: 'SWD392 - Web Development',
-      courseCode: 'SWD392',
-      semesterId: 1,
-      semesterName: 'Spring 2025',
-      memberCount: 0,
-      leaderId: 2,
-      leaderName: 'Trần Văn B',
-      status: 'OPENING',
-      members: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 2,
-      name: 'Team AI Research',
-      courseId: 2,
-      courseName: 'AI301 - Artificial Intelligence',
-      courseCode: 'AI301',
-      semesterId: 1,
-      semesterName: 'Spring 2025',
-      memberCount: 0,
-      leaderId: 3,
-      leaderName: 'Lê Thị C',
-      status: 'OPENING',
-      members: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 3,
-      name: 'Team Mobile App',
-      courseId: 1,
-      courseName: 'SWD392 - Web Development',
-      courseCode: 'SWD392',
-      semesterId: 1,
-      semesterName: 'Spring 2025',
-      memberCount: 0,
-      leaderId: 4,
-      leaderName: 'Phạm Văn D',
-      status: 'OPENING',
-      members: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 4,
-      name: 'Team Data Science',
-      courseId: 2,
-      courseName: 'AI301 - Artificial Intelligence',
-      courseCode: 'AI301',
-      semesterId: 1,
-      semesterName: 'Spring 2025',
-      memberCount: 0,
-      leaderId: 5,
-      leaderName: 'Hoàng Thị E',
-      status: 'OPENING',
-      members: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 5,
-      name: 'Team Blockchain',
-      courseId: 1,
-      courseName: 'SWD392 - Web Development',
-      courseCode: 'SWD392',
-      semesterId: 1,
-      semesterName: 'Spring 2025',
-      memberCount: 0,
-      leaderId: 1,
-      leaderName: 'Nguyễn Văn A',
-      status: 'OPENING',
-      members: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ];
-
   const loadTeams = async (courseId?: number) => {
     try {
       console.log('Loading teams for courseId:', courseId);
       
       if (!courseId) {
-        // Nếu không có courseId, dùng sample data
-        console.log('No courseId provided, using sample data');
-        const sampleTeams = getSampleAllTeams();
-        setAllTeams(sampleTeams);
-        setFilteredTeams(sampleTeams);
+        setAllTeams([]);
+        setFilteredTeams([]);
         return;
       }
 
       // Fetch course info to get mentorId
       const courseResponse = await courseService.getCourseById(courseId);
       if (isCourseApiError(courseResponse) || !isCourseResponse(courseResponse)) {
-        console.warn('Error loading course, using sample data:', courseResponse);
-        const sampleTeams = getSampleAllTeams().filter(t => t.courseId === courseId);
-        setAllTeams(sampleTeams);
-        setFilteredTeams(sampleTeams);
+        setError('Không thể lấy thông tin khóa học: ' + (isCourseApiError(courseResponse) ? courseResponse.message : 'Invalid response'));
+        setAllTeams([]);
+        setFilteredTeams([]);
         return;
       }
 
       const mentorId = courseResponse.data.mentorId;
       console.log('Fetching teams with mentorId:', mentorId);
       
-      const teamsResponse = await teamService.getTeamsByCourse(courseId, mentorId);
+      // Backend API: GET /api/teams?CourseId=X
+      const teamsResponse = await teamService.getTeamsByCourse(courseId);
       console.log('Teams response:', teamsResponse);
         
       if (isTeamApiError(teamsResponse)) {
-        console.warn('Error loading teams, using sample data:', teamsResponse.message);
-        const sampleTeams = getSampleAllTeams().filter(t => t.courseId === courseId);
-        setAllTeams(sampleTeams);
-        setFilteredTeams(sampleTeams);
+        setError('Không thể lấy danh sách nhóm: ' + teamsResponse.message);
+        setAllTeams([]);
+        setFilteredTeams([]);
         return;
       }
       if (isTeamListResponse(teamsResponse)) {
@@ -272,16 +139,15 @@ const StudentGroups: React.FC = () => {
         setAllTeams(teamsResponse.data);
         setFilteredTeams(teamsResponse.data);
       } else {
-        console.warn('Invalid teams response format, using sample data');
-        const sampleTeams = getSampleAllTeams().filter(t => t.courseId === courseId);
-        setAllTeams(sampleTeams);
-        setFilteredTeams(sampleTeams);
+        setError('Định dạng dữ liệu không hợp lệ');
+        setAllTeams([]);
+        setFilteredTeams([]);
       }
     } catch (err) {
       console.error('Error loading teams:', err);
-      const sampleTeams = courseId ? getSampleAllTeams().filter(t => t.courseId === courseId) : getSampleAllTeams();
-      setAllTeams(sampleTeams);
-      setFilteredTeams(sampleTeams);
+      setError('Có lỗi xảy ra khi tải danh sách nhóm');
+      setAllTeams([]);
+      setFilteredTeams([]);
     }
   };
 
@@ -289,14 +155,13 @@ const StudentGroups: React.FC = () => {
     if (selectedCourseId) {
       loadTeams(selectedCourseId);
     } else if (!loading && enrollments.length > 0) {
-      // If no course selected but have enrollments, load all sample teams
-      loadTeams();
+      // If no course selected but have enrollments, show empty
+      setAllTeams([]);
+      setFilteredTeams([]);
     } else if (!loading && enrollments.length === 0) {
-      // No enrollments at all, show sample data
-      console.warn('No enrollments, loading sample teams');
-      const sampleTeams = getSampleAllTeams();
-      setAllTeams(sampleTeams);
-      setFilteredTeams(sampleTeams);
+      // No enrollments at all
+      setAllTeams([]);
+      setFilteredTeams([]);
     }
   }, [selectedCourseId, loading, enrollments.length]);
 
@@ -353,6 +218,35 @@ const StudentGroups: React.FC = () => {
     return team.members?.some(m => m.userId === currentUserId) || false;
   };
 
+  const handleApplyToTeam = async (team: Team, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!currentUserId) {
+      message.error('Không thể xác định người dùng');
+      return;
+    }
+
+    // Tìm enrollment trong course này
+    const enrollment = enrollments.find(e => e.courseId === team.courseId && !e.isDeleted);
+    if (!enrollment) {
+      message.error('Bạn chưa đăng ký khóa học này');
+      return;
+    }
+
+    try {
+      const response = await applicationService.applyToTeam(enrollment.enrollmentId, team.id);
+      
+      if (isApplicationApiError(response)) {
+        message.error(response.message || 'Apply vào nhóm thất bại');
+      } else {
+        message.success('Gửi đơn tham gia nhóm thành công! Chờ nhóm trưởng phê duyệt.');
+      }
+    } catch (err) {
+      console.error('Error applying to team:', err);
+      message.error('Có lỗi xảy ra khi apply vào nhóm');
+    }
+  };
+
   if (loading) {
     return (
       <StudentLayout>
@@ -390,39 +284,16 @@ const StudentGroups: React.FC = () => {
         {/* Nếu có enrollment thì render tiếp các thành phần nhóm */}
         {enrollments.length > 0 && (
           <>
-            {error && error.includes('mẫu') && (
+            {error && (
               <Alert
-                message="⚠️ Không thể kết nối Backend Server"
-                description={
-                  <div>
-                    <p><strong>Đang hiển thị dữ liệu mẫu.</strong> Để xem dữ liệu thật từ database:</p>
-                    <ol style={{ marginLeft: 20, marginTop: 8, marginBottom: 0 }}>
-                      <li>Đảm bảo backend server đang chạy tại <code>http://localhost:8080</code></li>
-                      <li>Kiểm tra database đã được khởi tạo và có dữ liệu</li>
-                      <li>Kiểm tra authentication token còn hiệu lực</li>
-                      <li>Refresh trang này (F5) sau khi backend đã sẵn sàng</li>
-                    </ol>
-                    <p style={{ marginTop: 8, marginBottom: 0 }}>
-                      <strong>Lỗi:</strong> {error}
-                    </p>
-                  </div>
-                }
-                type="warning"
+                message="Lỗi tải dữ liệu"
+                description={error}
+                type="error"
                 showIcon
                 closable
                 style={{ marginBottom: 16 }}
               />
             )}
-        
-        {error && !error.includes('mẫu') && (
-          <Alert
-            message="Lỗi tải dữ liệu"
-            description={error}
-            type="error"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
-        )}
 
         {/* Search Bar & Filters */}
         <Card style={{ marginBottom: 16 }}>
@@ -598,10 +469,14 @@ const StudentGroups: React.FC = () => {
                           disabled={isJoined}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleViewTeamDetail(team.id);
+                            if (isJoined) {
+                              handleViewTeamDetail(team.id);
+                            } else {
+                              handleApplyToTeam(team, e);
+                            }
                           }}
                         >
-                          {isJoined ? 'Đã tham gia' : 'Xem chi tiết'}
+                          {isJoined ? 'Đã tham gia' : 'Apply vào nhóm'}
                         </Button>
                       </Space>
                     </Card>
@@ -614,79 +489,172 @@ const StudentGroups: React.FC = () => {
 
         {/* Create Team Modal */}
         <Modal
-          title="➕ Tạo nhóm mới"
+          title={
+            <Space>
+              <TeamOutlined style={{ color: '#1890ff', fontSize: '24px' }} />
+              <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Tạo nhóm học tập mới</span>
+            </Space>
+          }
           open={showCreateModal}
           onCancel={() => {
             setShowCreateModal(false);
             form.resetFields();
           }}
           footer={null}
-          width={600}
+          width={700}
+          style={{ top: 20 }}
         >
+          {/* Steps */}
+          <Steps
+            size="small"
+            current={0}
+            style={{ marginBottom: 24 }}
+            items={[
+              {
+                title: 'Thông tin nhóm',
+                icon: <InfoCircleOutlined />,
+              },
+              {
+                title: 'Hoàn tất',
+                icon: <CheckCircleOutlined />,
+              },
+            ]}
+          />
+
+          {/* Info Alert */}
           <Alert
-            message="Lưu ý"
-            description="Bạn sẽ trở thành nhóm trưởng của nhóm mới. Nhóm sẽ được tạo ngay lập tức."
+            message="Quyền lợi của nhóm trưởng"
+            description={
+              <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
+                <li>Bạn sẽ tự động trở thành <strong>Nhóm trưởng</strong></li>
+                <li>Có quyền mời thành viên vào nhóm</li>
+                <li>Có quyền chọn ý tưởng chính cho nhóm</li>
+                <li>Quản lý các hoạt động và tiến độ của nhóm</li>
+              </ul>
+            }
             type="info"
             showIcon
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 24 }}
           />
+
           <Form
             form={form}
             layout="vertical"
             onFinish={handleCreateTeam}
           >
+            {/* Chọn lớp học */}
             <Form.Item
               name="enrollmentId"
-              label="Chọn lớp học"
+              label={
+                <Space>
+                  <BookOutlined />
+                  <span style={{ fontWeight: 600 }}>Chọn lớp học</span>
+                </Space>
+              }
               rules={[{ required: true, message: 'Vui lòng chọn lớp học' }]}
+              extra="Nhóm sẽ được tạo trong lớp học này"
             >
               <Select
                 placeholder="Chọn lớp học để tạo nhóm"
                 size="large"
+                showSearch
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
               >
                 {enrollments.map(enrollment => (
                   <Select.Option key={enrollment.enrollmentId} value={enrollment.enrollmentId}>
-                    {enrollment.courseName} ({enrollment.courseCode})
+                    <Space>
+                      <Tag color="blue">{enrollment.courseCode}</Tag>
+                      {enrollment.courseName}
+                    </Space>
                   </Select.Option>
                 ))}
               </Select>
             </Form.Item>
 
+            {/* Tên nhóm */}
             <Form.Item
               name="name"
-              label="Tên nhóm"
+              label={
+                <Space>
+                  <TeamOutlined />
+                  <span style={{ fontWeight: 600 }}>Tên nhóm</span>
+                </Space>
+              }
               rules={[
                 { required: true, message: 'Vui lòng nhập tên nhóm' },
-                { min: 3, message: 'Tên nhóm phải có ít nhất 3 ký tự' },
+                { min: 5, message: 'Tên nhóm phải có ít nhất 5 ký tự' },
                 { max: 100, message: 'Tên nhóm không được quá 100 ký tự' }
               ]}
+              extra="Tên nhóm nên ngắn gọn, dễ nhớ và thể hiện được mục đích học tập"
             >
               <Input 
-                placeholder="Nhập tên nhóm (VD: Nhóm 1 - Quản lý bán hàng)"
+                placeholder="VD: Nhóm 1 - Hệ thống quản lý bán hàng"
                 size="large"
+                showCount
+                maxLength={100}
+                prefix={<TeamOutlined style={{ color: '#bfbfbf' }} />}
               />
             </Form.Item>
 
-            <Form.Item>
+            <Divider />
+
+            {/* Preview */}
+            <Card 
+              size="small" 
+              title="👁️ Xem trước" 
+              style={{ marginBottom: 16, background: '#fafafa' }}
+            >
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Space>
+                  <CrownOutlined style={{ color: '#faad14' }} />
+                  <Text strong>Nhóm trưởng:</Text>
+                  <Text>{currentUserId ? 'Bạn' : 'N/A'}</Text>
+                </Space>
+                <Space>
+                  <UserOutlined style={{ color: '#52c41a' }} />
+                  <Text strong>Số thành viên:</Text>
+                  <Text>1 (Bạn)</Text>
+                </Space>
+                <Space>
+                  <TeamOutlined style={{ color: '#1890ff' }} />
+                  <Text strong>Trạng thái:</Text>
+                  <Tag color="green">Đang mở</Tag>
+                </Space>
+              </Space>
+            </Card>
+
+            {/* Submit */}
+            <Form.Item style={{ marginBottom: 0 }}>
               <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-                <Button onClick={() => {
-                  setShowCreateModal(false);
-                  form.resetFields();
-                }}>
-                  Hủy
+                <Button 
+                  size="large"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    form.resetFields();
+                  }}
+                >
+                  Hủy bỏ
                 </Button>
                 <Button 
                   type="primary" 
+                  size="large"
                   htmlType="submit"
                   loading={creating}
                   icon={<PlusOutlined />}
                 >
-                  Gửi yêu cầu
+                  {creating ? 'Đang tạo nhóm...' : 'Tạo nhóm ngay'}
                 </Button>
               </Space>
             </Form.Item>
           </Form>
         </Modal>
+          </>
+        )}
       </div>
     </StudentLayout>
   );

@@ -13,13 +13,14 @@ export interface ApiErrorResponse {
 export interface Enrollment {
   enrollmentId: number;
   userId: number;
-  userName: string;
+  userFullName?: string;
   userEmail: string;
   courseId: number;
   courseName: string;
   courseCode: string;
   enrollmentDate: string;
-  status: EnrollmentStatus;
+  isDeleted: boolean;
+  status?: EnrollmentStatus; // Optional vì backend không trả về
   approvedBy?: number;
   approvedByName?: string;
   approvedDate?: string;
