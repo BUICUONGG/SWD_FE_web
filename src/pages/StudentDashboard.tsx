@@ -1,48 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Card, Row, Col, Statistic, List, Typography, Space, Button, Spin, 
-  Progress, Avatar, Badge, Tag, Timeline, Alert
+  Card, Row, Col, List, Typography, Space, Button, Spin, 
+  Avatar, Tag, Alert
 } from 'antd';
 import { 
-  BookOutlined, ClockCircleOutlined, TrophyOutlined, CalendarOutlined,
-  ExclamationCircleOutlined, BellOutlined,
-  FileTextOutlined, UserOutlined, StarOutlined, FireOutlined
+  BookOutlined, UserOutlined
 } from '@ant-design/icons';
 import StudentLayout from '../components/StudentLayout';
 import { userService, isApiError, isUserResponse } from '../services/userService';
-import { enrollmentService, isApiError as isEnrollmentApiError, isEnrollmentListResponse } from '../services/enrollmentService';
-import { courseService, isApiError as isCourseApiError, isCourseResponse } from '../services/courseService';
+import { teamService, isApiError as isTeamApiError, isTeamListResponse } from '../services/teamService';
 import type { User } from '../types/user';
-import type { Enrollment } from '../types/enrollment';
-import type { Course as CourseType } from '../types/course';
+import type { Team } from '../types/team';
 
 const { Title, Text, Paragraph } = Typography;
-
-interface Activity {
-  id: number;
-  title: string;
-  time: string;
-  type: 'assignment' | 'exam' | 'grade' | 'course' | 'notification';
-  status?: 'completed' | 'pending' | 'late';
-}
-
-interface Course {
-  id: number;
-  name: string;
-  code: string;
-  instructor: string;
-  progress: number;
-  nextClass: string;
-  status: 'active' | 'completed' | 'upcoming';
-}
 
 const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [enrolledCourses, setEnrolledCourses] = useState<CourseType[]>([]);
+  const [myTeams, setMyTeams] = useState<Team[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,31 +37,27 @@ const StudentDashboard: React.FC = () => {
           setUser(userResponse.data);
         }
 
-        // Fetch user enrollments
+        // Fetch my teams
         if (userResponse.data?.userId) {
-          const enrollmentsResponse = await enrollmentService.getEnrollmentsByUser(userResponse.data.userId);
-          if (isEnrollmentApiError(enrollmentsResponse)) {
-            throw new Error(enrollmentsResponse.message);
-          }
-          if (isEnrollmentListResponse(enrollmentsResponse)) {
-            setEnrollments(enrollmentsResponse.data);
+          try {
+            console.log('📋 [StudentDashboard] Fetching teams for user:', userResponse.data.userId);
+            const teamsResponse = await teamService.getMyTeams();
+            console.log('📋 [StudentDashboard] Teams response:', teamsResponse);
             
-            // Fetch course details for each enrollment
-            const coursePromises = enrollmentsResponse.data.map(async (enrollment) => {
-              const courseResponse = await courseService.getCourseById(enrollment.courseId);
-              if (isCourseApiError(courseResponse)) {
-                console.error(`Failed to fetch course ${enrollment.courseId}:`, courseResponse.message);
-                return null;
-              }
-              if (isCourseResponse(courseResponse)) {
-                return courseResponse.data;
-              }
-              return null;
-            });
-
-            const courseResults = await Promise.all(coursePromises);
-            const validCourses = courseResults.filter((course): course is CourseType => course !== null);
-            setEnrolledCourses(validCourses);
+            if (isTeamApiError(teamsResponse)) {
+              console.warn('⚠️ [StudentDashboard] Cannot load teams:', teamsResponse.message);
+              setMyTeams([]);
+            } else if (isTeamListResponse(teamsResponse)) {
+              const validTeams = teamsResponse.data.filter((t: any) => t != null);
+              console.log('✅ [StudentDashboard] Loaded teams:', validTeams);
+              setMyTeams(validTeams);
+            } else {
+              console.warn('⚠️ [StudentDashboard] Unexpected teams response format');
+              setMyTeams([]);
+            }
+          } catch (teamErr) {
+            console.error('❌ [StudentDashboard] Error fetching teams:', teamErr);
+            setMyTeams([]);
           }
         }
       } catch (err) {
@@ -128,64 +101,6 @@ const StudentDashboard: React.FC = () => {
     );
   }
 
-  // Generate activities from enrollment data
-  const enrollmentActivities: Activity[] = enrollments.slice(0, 3).map((enrollment) => ({
-    id: enrollment.enrollmentId,
-    title: `Đăng ký thành công lớp ${enrollment.courseName}`,
-    time: new Date(enrollment.enrollmentDate).toLocaleDateString('vi-VN'),
-    type: 'course' as const,
-    status: enrollment.status === 'APPROVED' ? 'completed' : 'pending'
-  }));
-
-  const activities: Activity[] = [
-    ...enrollmentActivities,
-    { 
-      id: 1001, 
-      title: 'Nộp bài tập Lập trình React', 
-      time: '2 giờ trước', 
-      type: 'assignment',
-      status: 'completed'
-    },
-    { 
-      id: 1002, 
-      title: 'Kiểm tra giữa kỳ môn UI/UX', 
-      time: '1 ngày trước', 
-      type: 'exam',
-      status: 'pending'
-    }
-  ];
-
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'assignment': return <FileTextOutlined style={{ color: '#1890ff' }} />;
-      case 'exam': return <ExclamationCircleOutlined style={{ color: '#faad14' }} />;
-      case 'grade': return <TrophyOutlined style={{ color: '#52c41a' }} />;
-      case 'course': return <BookOutlined style={{ color: '#722ed1' }} />;
-      default: return <BellOutlined style={{ color: '#8c8c8c' }} />;
-    }
-  };
-
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'completed': return 'success';
-      case 'pending': return 'warning';
-      case 'late': return 'error';
-      default: return 'default';
-    }
-  };
-
-  // Transform enrolled courses to display format
-  const displayCourses: Course[] = enrolledCourses.map((course) => ({
-    id: course.courseId,
-    name: course.name,
-    code: course.code,
-    instructor: course.mentorName,
-    progress: 0, // This would need to be calculated from enrollment progress
-    nextClass: 'Chưa có lịch', // This would need to be fetched from schedule API
-    status: course.status === 'IN_PROGRESS' ? 'active' : 
-            course.status === 'COMPLETED' ? 'completed' : 'upcoming'
-  }));
-
   return (
     <StudentLayout>
       <div style={{ padding: '24px', background: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
@@ -194,10 +109,10 @@ const StudentDashboard: React.FC = () => {
           <Row align="middle">
             <Col flex="auto">
               <Title level={2} style={{ color: 'white', margin: 0 }}>
-                🌟 Chào mừng trở lại, {user?.fullName || 'Sinh viên'}!
+                👥 Chào mừng trở lại, {user?.fullName || 'Sinh viên'}!
               </Title>
               <Paragraph style={{ color: 'rgba(255,255,255,0.9)', margin: 0, fontSize: '16px' }}>
-                Hôm nay là ngày tuyệt vời để học tập. Hãy cùng khám phá những điều mới mẻ!
+                Quản lý nhóm học của bạn một cách dễ dàng và hiệu quả!
               </Paragraph>
             </Col>
             <Col>
@@ -213,122 +128,79 @@ const StudentDashboard: React.FC = () => {
           </Row>
         </Card>
 
-        {/* Statistics Cards */}
-        <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Statistic
-                title="Môn học đang học"
-                value={enrolledCourses.length}
-                prefix={<BookOutlined style={{ color: '#1890ff' }} />}
-                valueStyle={{ color: '#1890ff', fontSize: '28px' }}
-                suffix={<Badge count={enrollments.filter(e => e.status === 'APPROVED').length} style={{ backgroundColor: '#52c41a' }}>
-                  <FireOutlined style={{ color: '#ff7875', marginLeft: 8 }} />
-                </Badge>}
-              />
-              <Text type="secondary" style={{ fontSize: '12px' }}>Đã được phê duyệt</Text>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Statistic
-                title="Điểm trung bình"
-                value={8.5}
-                precision={1}
-                prefix={<TrophyOutlined style={{ color: '#faad14' }} />}
-                valueStyle={{ color: '#faad14', fontSize: '28px' }}
-                suffix={<StarOutlined style={{ color: '#faad14' }} />}
-              />
-              <Progress percent={85} size="small" showInfo={false} strokeColor="#faad14" />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Statistic
-                title="Tín chỉ hoàn thành"
-                value={45}
-                prefix={<CalendarOutlined style={{ color: '#52c41a' }} />}
-                valueStyle={{ color: '#52c41a', fontSize: '28px' }}
-                suffix="/ 120"
-              />
-              <Progress percent={37.5} size="small" showInfo={false} strokeColor="#52c41a" />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Statistic
-                title="Giờ học tuần này"
-                value={enrolledCourses.length * 3}
-                prefix={<ClockCircleOutlined style={{ color: '#722ed1' }} />}
-                valueStyle={{ color: '#722ed1', fontSize: '28px' }}
-                suffix="giờ"
-              />
-              <Text type="secondary" style={{ fontSize: '12px' }}>Dựa trên số môn học</Text>
-            </Card>
-          </Col>
-        </Row>
-
         {/* Main Content */}
         <Row gutter={[16, 16]}>
           {/* Left Column */}
           <Col xs={24} lg={16}>
-            {/* Courses Progress */}
-            <Card title={<><BookOutlined /> Môn học đang theo học</> } style={{ marginBottom: 16 }}>
-              <List
-                dataSource={displayCourses}
-                renderItem={(course: Course) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      avatar={<Avatar style={{ backgroundColor: '#1890ff' }}>{course.code}</Avatar>}
-                      title={
-                        <Space>
-                          <Text strong>{course.name}</Text>
-                          <Tag color="blue">{course.code}</Tag>
-                        </Space>
-                      }
-                      description={
-                        <Space direction="vertical" style={{ width: '100%' }}>
-                          <Text type="secondary">Giảng viên: {course.instructor}</Text>
-                          <Text type="secondary">Lớp tiếp theo: {course.nextClass}</Text>
-                          <Progress 
-                            percent={course.progress} 
-                            size="small" 
-                            strokeColor={course.progress >= 80 ? '#52c41a' : course.progress >= 60 ? '#faad14' : '#1890ff'}
-                          />
-                        </Space>
-                      }
-                    />
-                    <div>
-                      <Text strong>{course.progress}%</Text>
-                    </div>
-                  </List.Item>
-                )}
-              />
-            </Card>
-
-            {/* Recent Activities */}
-            <Card title={<><ClockCircleOutlined /> Hoạt động gần đây</> }>
-              <Timeline>
-                {activities.map((activity) => (
-                  <Timeline.Item 
-                    key={activity.id}
-                    dot={getActivityIcon(activity.type)}
-                  >
-                    <Space direction="vertical" size={4}>
-                      <Space>
-                        <Text strong>{activity.title}</Text>
-                        {activity.status && (
-                          <Tag color={getStatusColor(activity.status)}>
-                            {activity.status === 'completed' ? 'Hoàn thành' : 
-                             activity.status === 'pending' ? 'Đang chờ' : 'Trễ hạn'}
-                          </Tag>
-                        )}
-                      </Space>
-                      <Text type="secondary" style={{ fontSize: '12px' }}>{activity.time}</Text>
-                    </Space>
-                  </Timeline.Item>
-                ))}
-              </Timeline>
+            {/* My Teams */}
+            <Card 
+              title={<><UserOutlined /> Nhóm của tôi ({myTeams.length})</> }
+              extra={
+                <Button 
+                  type="primary" 
+                  onClick={() => navigate('/student/groups')}
+                >
+                  Xem tất cả nhóm
+                </Button>
+              }
+            >
+              {myTeams.length === 0 ? (
+                <Alert
+                  message="Bạn chưa tham gia nhóm nào"
+                  description="Hãy tham gia hoặc tạo nhóm mới để bắt đầu làm việc cùng nhau!"
+                  type="info"
+                  showIcon
+                  action={
+                    <Button 
+                      type="primary" 
+                      onClick={() => navigate('/student/groups')}
+                    >
+                      Tạo nhóm ngay
+                    </Button>
+                  }
+                />
+              ) : (
+                <List
+                  dataSource={myTeams.filter(t => t != null)}
+                  renderItem={(team) => (
+                    <List.Item
+                      actions={[
+                        <Button 
+                          type="link" 
+                          onClick={() => navigate(`/student/group/${team.id}`)}
+                        >
+                          Xem chi tiết
+                        </Button>
+                      ]}
+                    >
+                      <List.Item.Meta
+                        avatar={
+                          <Avatar style={{ backgroundColor: '#1890ff' }} size="large">
+                            {team.name.charAt(0).toUpperCase()}
+                          </Avatar>
+                        }
+                        title={
+                          <Space>
+                            <Text strong>{team.name}</Text>
+                            <Tag color={team.status === 'OPENING' ? 'green' : 'default'}>
+                              {team.status === 'OPENING' ? 'Đang mở' : team.status}
+                            </Tag>
+                            {team.leaderId === user?.userId && (
+                              <Tag color="gold">👑 Trưởng nhóm</Tag>
+                            )}
+                          </Space>
+                        }
+                        description={
+                          <Space direction="vertical" size={4}>
+                            <Text type="secondary">Thành viên: {team.members?.length || 0} người</Text>
+                            <Text type="secondary">Môn học: {team.courseName || 'N/A'}</Text>
+                          </Space>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              )}
             </Card>
           </Col>
           
@@ -339,68 +211,52 @@ const StudentDashboard: React.FC = () => {
               <Space direction="vertical" style={{ width: '100%' }} size="middle">
                 <Button 
                   type="primary" 
+                  icon={<UserOutlined />}
+                  block 
+                  size="large"
+                  onClick={() => navigate('/student/groups')}
+                >
+                  👥 Quản lý nhóm
+                </Button>
+                <Button 
                   icon={<BookOutlined />}
                   block 
                   size="large"
                   onClick={() => navigate('/student/discover')}
                 >
-                  📚 Khóa học
-                </Button>
-                <Button 
-                  icon={<CalendarOutlined />}
-                  block 
-                  size="large"
-                  onClick={() => navigate('/student/groups')}
-                >
-                  👥 Nhóm học
-                </Button>
-                <Button 
-                  icon={<ClockCircleOutlined />}
-                  block 
-                  size="large"
-                  onClick={() => navigate('/student/schedule')}
-                >
-                  📅 Lịch học
-                </Button>
-                <Button 
-                  icon={<TrophyOutlined />}
-                  block 
-                  size="large"
-                  onClick={() => navigate('/student/grades')}
-                >
-                  🏆 Điểm số
+                  📚 Khóa học của tôi
                 </Button>
               </Space>
             </Card>
 
-            {/* Notifications */}
-            <Card title={<><BellOutlined /> Thông báo <Badge count={3} /></>}>
-              <List
-                size="small"
-                dataSource={[
-                  { title: 'Bài tập mới đã được giao', time: '2 giờ trước', important: true },
-                  { title: 'Lịch thi cuối kỳ đã cập nhật', time: '1 ngày trước', important: false },
-                  { title: 'Khóa học mới đã mở đăng ký', time: '2 ngày trước', important: false },
-                ]}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      avatar={item.important ? 
-                        <ExclamationCircleOutlined style={{ color: '#faad14' }} /> : 
-                        <BellOutlined style={{ color: '#8c8c8c' }} />
-                      }
-                      title={<Text style={{ fontSize: '14px' }}>{item.title}</Text>}
-                      description={<Text type="secondary" style={{ fontSize: '12px' }}>{item.time}</Text>}
-                    />
-                  </List.Item>
-                )}
-              />
+            {/* Team Statistics */}
+            <Card title="📊 Thống kê nhóm">
+              <Space direction="vertical" style={{ width: '100%' }} size="large">
+                <div>
+                  <Text type="secondary">Tổng số nhóm đã tham gia</Text>
+                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#1890ff' }}>
+                    {myTeams.length}
+                  </div>
+                </div>
+                <div>
+                  <Text type="secondary">Vai trò trưởng nhóm</Text>
+                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#faad14' }}>
+                    {myTeams.filter(team => team.leaderId === user?.userId).length}
+                  </div>
+                </div>
+                <div>
+                  <Text type="secondary">Nhóm đang mở</Text>
+                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#52c41a' }}>
+                    {myTeams.filter(team => team.status === 'OPENING').length}
+                  </div>
+                </div>
+              </Space>
             </Card>
 
-            {/* Motivational Quote */}
+            {/* Quick Info */}
             <Alert
-              message="💡 Mẩu chuyện hôm nay"
-              description="Thành công không phải là chìa khóa của hạnh phúc. Hạnh phúc mới là chìa khóa của thành công."
+              message="💡 Mẹo quản lý nhóm"
+              description="Hãy thường xuyên giao tiếp với các thành viên trong nhóm để đảm bảo mọi người đều nắm rõ tiến độ công việc!"
               type="info"
               showIcon
               style={{ marginTop: 16 }}

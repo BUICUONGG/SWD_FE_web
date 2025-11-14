@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Backend API</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+        button { padding: 10px 20px; margin: 10px; background: #007acc; color: white; border: none; cursor: pointer; }
+        button:hover { background: #005a9e; }
+        pre { background: #252526; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .success { color: #4ec9b0; }
+        .error { color: #f48771; }
+        .warning { color: #dcdcaa; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test Backend API Response</h1>
+    
+    <div>
+        <h3>Token Status:</h3>
+        <pre id="tokenStatus"></pre>
+    </div>
+
+    <button onclick="testMyTeams()">Test GET /api/teams/my-teams</button>
+    <button onclick="testTeamsByCourse()">Test GET /api/teams?CourseId=1&mentorId=1</button>
+    <button onclick="testEnrollments()">Test GET /api/enrollments/user/1</button>
+    
+    <div id="output"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        
+        function getToken() {
+            const token = localStorage.getItem('accessToken');
+            document.getElementById('tokenStatus').innerHTML = token 
+                ? `<span class="success">✓ Token found: ${token.substring(0, 50)}...</span>`
+                : `<span class="error">✗ No token found - Please login first</span>`;
+            return token;
+        }
+
+        getToken();
+
+        async function testAPI(name, url) {
+            const output = document.getElementById('output');
+            output.innerHTML += `<h3>${name}</h3>`;
+            output.innerHTML += `<p class="warning">URL: ${url}</p>`;
+            
+            try {
+                const token = getToken();
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                output.innerHTML += `<p>Status: <span class="${response.ok ? 'success' : 'error'}">${response.status} ${response.statusText}</span></p>`;
+                
+                const contentType = response.headers.get('content-type');
+                output.innerHTML += `<p>Content-Type: ${contentType}</p>`;
+                
+                const text = await response.text();
+                
+                try {
+                    const json = JSON.parse(text);
+                    output.innerHTML += `<pre class="success">${JSON.stringify(json, null, 2)}</pre>`;
+                } catch (e) {
+                    output.innerHTML += `<p class="error">❌ Response is NOT valid JSON!</p>`;
+                    output.innerHTML += `<pre class="error">${text.substring(0, 500)}...</pre>`;
+                }
+            } catch (error) {
+                output.innerHTML += `<pre class="error">Error: ${error.message}</pre>`;
+            }
+            
+            output.innerHTML += '<hr>';
+        }
+
+        function testMyTeams() {
+            testAPI('My Teams', `${API_BASE}/api/teams/my-teams`);
+        }
+
+        function testTeamsByCourse() {
+            testAPI('Teams by Course', `${API_BASE}/api/teams?CourseId=1&mentorId=1`);
+        }
+
+        function testEnrollments() {
+            testAPI('Enrollments', `${API_BASE}/api/enrollments/user/1`);
+        }
+    </script>
+</body>
+</html>

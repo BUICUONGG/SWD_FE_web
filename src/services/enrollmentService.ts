@@ -106,30 +106,56 @@ export const enrollmentService = {
   },
 
   /**
-   * Phê duyệt đăng ký
+   * Hủy đăng ký (Admin only)
    */
-  approveEnrollment: async (id: number, approvedBy: number): Promise<EnrollmentResponse | ApiErrorResponse> => {
-    return apiCall<EnrollmentResponse>(getApiUrl(`/api/enrollments/${id}/approve?approvedBy=${approvedBy}`), {
-      method: 'PATCH',
-    });
-  },
-
-  /**
-   * Hoàn thành đăng ký
-   */
-  completeEnrollment: async (id: number): Promise<EnrollmentResponse | ApiErrorResponse> => {
-    return apiCall<EnrollmentResponse>(getApiUrl(`/api/enrollments/${id}/complete`), {
-      method: 'PATCH',
-    });
-  },
-
-  /**
-   * Hủy đăng ký
-   */
-  cancelEnrollment: async (id: number): Promise<{ success: boolean; message: string } | ApiErrorResponse> => {
+  deleteEnrollment: async (id: number): Promise<{ success: boolean; message: string } | ApiErrorResponse> => {
     return apiCall<{ success: boolean; message: string }>(getApiUrl(`/api/enrollments/${id}`), {
       method: 'DELETE',
     });
+  },
+
+  /**
+   * Hủy đăng ký khóa học của sinh viên hiện tại (Student only)
+   */
+  unenrollCurrentUser: async (courseId: number): Promise<{ success: boolean; message: string } | ApiErrorResponse> => {
+    return apiCall<{ success: boolean; message: string }>(getApiUrl(`/api/enrollments/my-courses/${courseId}`), {
+      method: 'DELETE',
+    });
+  },
+
+  // NOTE: Legacy methods below are not implemented in backend
+  // They are kept for backwards compatibility but will return errors
+  
+  /**
+   * @deprecated Not implemented in backend
+   */
+  approveEnrollment: async (id: number, approvedBy: number): Promise<ApiErrorResponse> => {
+    console.warn('approveEnrollment is not implemented in backend');
+    return {
+      success: false,
+      message: 'API endpoint not implemented',
+      errorCode: 'NOT_IMPLEMENTED'
+    };
+  },
+
+  /**
+   * @deprecated Not implemented in backend
+   */
+  completeEnrollment: async (id: number): Promise<ApiErrorResponse> => {
+    console.warn('completeEnrollment is not implemented in backend');
+    return {
+      success: false,
+      message: 'API endpoint not implemented',
+      errorCode: 'NOT_IMPLEMENTED'
+    };
+  },
+
+  /**
+   * @deprecated Use deleteEnrollment instead
+   */
+  cancelEnrollment: async (id: number): Promise<{ success: boolean; message: string } | ApiErrorResponse> => {
+    console.warn('cancelEnrollment is deprecated, use deleteEnrollment instead');
+    return enrollmentService.deleteEnrollment(id);
   },
 };
 

@@ -29,12 +29,13 @@ import {
   DownloadOutlined,
   ArrowLeftOutlined,
   EyeOutlined,
-  UserOutlined,
-  CalendarOutlined
+  UserOutlined
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { courseService, isCourseResponse } from '../services/courseService';
+import { teamService, isTeamListResponse, isApiError as isTeamApiError } from '../services/teamService';
 import type { Course } from '../types/course';
+import type { Team } from '../types/team';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -55,6 +56,8 @@ const MentorCourseManagement: React.FC = () => {
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(false);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -98,6 +101,11 @@ const MentorCourseManagement: React.FC = () => {
             form.setFieldsValue(courseData);
           }
         }
+
+        // Fetch teams for this course
+        if (courseId) {
+          await fetchTeams(parseInt(courseId));
+        }
       } catch (err) {
         console.error('Error fetching course data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load course data');
@@ -108,6 +116,43 @@ const MentorCourseManagement: React.FC = () => {
 
     fetchCourseData();
   }, [courseId, form]);
+
+  const fetchTeams = async (cId: number) => {
+    try {
+      setLoadingTeams(true);
+      
+      // Get current user info to get mentorId
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        console.warn('No user info found');
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      const mentorId = user.userId;
+
+      if (!mentorId) {
+        console.warn('No mentorId found');
+        return;
+      }
+
+      const response = await teamService.getTeamsByCourse(cId, mentorId);
+      
+      if (isTeamApiError(response)) {
+        console.error('Error loading teams:', response.message);
+        setTeams([]);
+      } else if (isTeamListResponse(response)) {
+        setTeams(response.data || []);
+      } else {
+        setTeams([]);
+      }
+    } catch (err) {
+      console.error('Error fetching teams:', err);
+      setTeams([]);
+    } finally {
+      setLoadingTeams(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -325,6 +370,81 @@ const MentorCourseManagement: React.FC = () => {
     },
   ];
 
+  const teamColumns = [
+    {
+      title: 'Tên nhóm',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text: string, record: Team) => (
+        <Space>
+          <Avatar style={{ backgroundColor: '#1890ff' }} icon={<TeamOutlined />} />
+          <div>
+            <div><Text strong>{text}</Text></div>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              ID: {record.id}
+            </Text>
+          </div>
+        </Space>
+      ),
+    },
+    {
+      title: 'Nhóm trưởng',
+      dataIndex: 'leaderName',
+      key: 'leaderName',
+      render: (text?: string) => (
+        <Space>
+          <Avatar size="small" icon={<UserOutlined />} />
+          <Text>{text || 'N/A'}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Số thành viên',
+      key: 'memberCount',
+      render: (record: Team) => (
+        <Tag color="blue">
+          <UserOutlined /> {record.members?.length || 0} thành viên
+        </Tag>
+      ),
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => (
+        <Tag color={status === 'OPENING' ? 'green' : status === 'CLOSED' ? 'red' : 'default'}>
+          {status === 'OPENING' ? 'Đang mở' : status === 'CLOSED' ? 'Đã đóng' : status}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Ngày tạo',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date?: string) => (
+        <Text type="secondary">
+          {date ? new Date(date).toLocaleDateString('vi-VN') : 'N/A'}
+        </Text>
+      ),
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      render: (record: Team) => (
+        <Space>
+          <Button 
+            type="link" 
+            size="small" 
+            icon={<EyeOutlined />}
+            onClick={() => navigate(`/mentor/teams/${record.id}`)}
+          >
+            Xem chi tiết
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
   const occupancyRate = Math.round((course.currentStudents / course.maxStudents) * 100);
 
   return (
@@ -375,6 +495,19 @@ const MentorCourseManagement: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
+              title="Số nhóm"
+              value={teams.length}
+              prefix={<TeamOutlined />}
+              valueStyle={{ color: '#1890ff' }}
+            />
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              {teams.filter(t => t.status === 'OPENING').length} nhóm đang mở
+            </Text>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
               title="Chờ phê duyệt"
               value={enrollmentRequests.filter(r => r.status === 'PENDING').length}
               prefix={<FileTextOutlined />}
@@ -382,18 +515,6 @@ const MentorCourseManagement: React.FC = () => {
             />
             <Text type="secondary" style={{ fontSize: '12px' }}>
               Đơn chờ xử lý
-            </Text>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="Ngày bắt đầu"
-              value={course.startDate ? new Date(course.startDate).toLocaleDateString('vi-VN') : 'N/A'}
-              prefix={<CalendarOutlined />}
-            />
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              Khóa học bắt đầu
             </Text>
           </Card>
         </Col>
@@ -511,6 +632,43 @@ const MentorCourseManagement: React.FC = () => {
               scroll={{ x: 1000 }}
             />
           </Card>
+
+          {/* Teams List */}
+          <Card 
+            title={<><TeamOutlined /> Danh sách nhóm ({teams.length})</>}
+            style={{ marginTop: 16 }}
+            extra={
+              <Button 
+                type="primary" 
+                onClick={() => navigate(`/mentor/course/${courseId}/teams`)}
+              >
+                Quản lý nhóm
+              </Button>
+            }
+          >
+            {loadingTeams ? (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <Spin tip="Đang tải danh sách nhóm..." />
+              </div>
+            ) : teams.length === 0 ? (
+              <Alert
+                message="Chưa có nhóm nào"
+                description="Các sinh viên chưa tạo nhóm trong khóa học này. Nhóm sẽ tự động hiển thị khi sinh viên tạo."
+                type="info"
+                showIcon
+                style={{ margin: '20px 0' }}
+              />
+            ) : (
+              <Table
+                columns={teamColumns}
+                dataSource={teams}
+                pagination={{ pageSize: 5 }}
+                size="small"
+                scroll={{ x: 800 }}
+                rowKey="id"
+              />
+            )}
+          </Card>
         </Col>
 
         <Col xs={24} lg={8}>
@@ -547,8 +705,21 @@ const MentorCourseManagement: React.FC = () => {
           {/* Quick Actions */}
           <Card title="🚀 Thao tác nhanh">
             <Space direction="vertical" style={{ width: '100%' }}>
-              <Button type="primary" block size="large">
-                👥 Quản lý sinh viên
+              <Button 
+                type="primary" 
+                block 
+                size="large"
+                icon={<TeamOutlined />}
+                onClick={() => navigate(`/mentor/course/${courseId}/teams`)}
+              >
+                Quản lý nhóm
+              </Button>
+              <Button 
+                block 
+                size="large"
+                icon={<UserOutlined />}
+              >
+                Quản lý sinh viên
               </Button>
               <Button block size="large">
                 📝 Tạo bài tập

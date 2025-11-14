@@ -11,19 +11,11 @@ import {
   Spin,
   Progress,
   Avatar,
-  Badge,
   Tag,
   Timeline,
   Alert,
   Empty,
-  Tooltip,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
-  DatePicker,
-  Select,
-  message
+  Tooltip
 } from 'antd';
 import {
   BookOutlined,
@@ -32,25 +24,43 @@ import {
   TrophyOutlined,
   CalendarOutlined,
   FileTextOutlined,
-  UserOutlined,
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
-  ArrowRightOutlined
+  UserOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { userService, isApiError, isUserResponse } from '../services/userService';
-import { courseService, isCourseListResponse, isCourseResponse } from '../services/courseService';
+import { courseService, isCourseListResponse } from '../services/courseService';
+import { teamService, isApiError as isTeamApiError, isTeamListResponse } from '../services/teamService';
 import type { User } from '../types/user';
 import type { Course } from '../types/course';
+import type { Team } from '../types/team';
 
 const { Title, Text, Paragraph } = Typography;
 
 interface MentorCourse extends Course {
-  enrollmentCount: number;
-  approvedEnrollments: number;
-  pendingEnrollments: number;
-  completedEnrollments: number;
+  teams: Team[];
+  totalTeams: number;
+  totalMembers: number;
 }
+
+// TODO: These interfaces will be used when backend implements pending request endpoints
+// interface JoinRequest {
+//   requestId: number;
+//   studentName: string;
+//   studentEmail: string;
+//   teamName: string;
+//   teamId: number;
+//   requestDate: string;
+// }
+
+// interface CreationRequest {
+//   requestId: number;
+//   studentName: string;
+//   studentEmail: string;
+//   teamName: string;
+//   courseName: string;
+//   description: string;
+//   requestDate: string;
+// }
 
 const MentorDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -58,9 +68,11 @@ const MentorDashboard: React.FC = () => {
   const [mentor, setMentor] = useState<User | null>(null);
   const [courses, setCourses] = useState<MentorCourse[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createForm] = Form.useForm();
+
+  // TODO: Enable these states when backend implements pending request endpoints
+  // const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  // const [creationRequests, setCreationRequests] = useState<CreationRequest[]>([]);
+  // const [processingRequest, setProcessingRequest] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -77,24 +89,45 @@ const MentorDashboard: React.FC = () => {
           const mentorData = userResponse.data;
           setMentor(mentorData);
           
-          // Fetch courses managed by this mentor using mentorId
-          // Note: Frontend doesn't have mentorId, so we'll use mentorName or fetch all and filter
-          // For now, let's try to get courses by calling the API and match by mentorName
+          // Fetch courses managed by this mentor
           const coursesResponse = await courseService.getAllCourses();
           if (!isApiError(coursesResponse) && isCourseListResponse(coursesResponse)) {
             // Filter courses where current mentor manages them
-            const mentorCourses: MentorCourse[] = coursesResponse.data
-              .filter(course => course.mentorName === mentorData.fullName)
-              .map(course => ({
-                ...course,
-                enrollmentCount: course.currentStudents || 0,
-                approvedEnrollments: Math.floor((course.currentStudents || 0) * 0.9),
-                pendingEnrollments: Math.ceil((course.currentStudents || 0) * 0.1),
-                completedEnrollments: Math.floor((course.currentStudents || 0) * 0.7)
-              }));
-            setCourses(mentorCourses);
+            const filteredCourses = coursesResponse.data
+              .filter(course => course.mentorName === mentorData.fullName);
+            
+            // Fetch teams for each course
+            const coursesWithTeams: MentorCourse[] = await Promise.all(
+              filteredCourses.map(async (course) => {
+                // Backend requires both courseId and mentorId
+                const teamsResponse = await teamService.getTeamsByCourse(course.courseId, mentorData.userId);
+                const teams = (!isTeamApiError(teamsResponse) && isTeamListResponse(teamsResponse)) 
+                  ? teamsResponse.data 
+                  : [];
+                
+                const totalMembers = teams.reduce((sum, team) => sum + (team.memberCount || 0), 0);
+                
+                return {
+                  ...course,
+                  teams,
+                  totalTeams: teams.length,
+                  totalMembers
+                };
+              })
+            );
+            
+            setCourses(coursesWithTeams);
           }
         }
+
+        // TODO: Pending request endpoints not yet implemented in backend
+        // Need backend to implement:
+        // - GET /api/teams/pending-join-requests
+        // - GET /api/teams/pending-creation-requests
+        // - POST /api/teams/join-request/{id}/approve
+        // - POST /api/teams/join-request/{id}/reject
+        // - POST /api/teams/creation-request/{id}/approve
+        // - POST /api/teams/creation-request/{id}/reject
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
@@ -106,69 +139,11 @@ const MentorDashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
 
-  const handleCreateCourse = async (values: any) => {
-    setCreateLoading(true);
-    try {
-      const courseData = {
-        code: values.code?.trim(),
-        name: values.name?.trim(),
-        maxStudents: parseInt(values.maxStudents),
-        teamFormationDeadline: values.teamFormationDeadline?.format('YYYY-MM-DD'),
-        status: values.status || 'UPCOMING',
-        mentorId: mentor?.userId || 0,
-        subjectId: parseInt(values.subjectId) || 1,
-        semesterId: parseInt(values.semesterId) || 1,
-      };
-
-      // Validate required fields
-      if (!courseData.code || !courseData.name || !courseData.teamFormationDeadline) {
-        message.error('Vui lòng điền tất cả các trường bắt buộc');
-        return;
-      }
-
-      console.log('Creating course with data:', courseData);
-      const response = await courseService.createCourse(courseData);
-      
-      if (isApiError(response)) {
-        console.error('API Error:', response);
-        message.error(`Lỗi: ${response.message || 'Tạo khóa học thất bại'}`);
-        return;
-      }
-
-      if (isCourseResponse(response)) {
-        console.log('Course created successfully:', response.data);
-        message.success('Tạo khóa học thành công!');
-        setCreateModalVisible(false);
-        createForm.resetFields();
-        
-        // Fetch updated courses list instead of full page reload
-        try {
-          const coursesResponse = await courseService.getAllCourses();
-          if (!isApiError(coursesResponse) && isCourseListResponse(coursesResponse)) {
-            const mentorCourses: MentorCourse[] = coursesResponse.data
-              .filter(course => course.mentorName === mentor?.fullName)
-              .map(course => ({
-                ...course,
-                enrollmentCount: course.currentStudents || 0,
-                approvedEnrollments: Math.floor((course.currentStudents || 0) * 0.9),
-                pendingEnrollments: Math.ceil((course.currentStudents || 0) * 0.1),
-                completedEnrollments: Math.floor((course.currentStudents || 0) * 0.7)
-              }));
-            setCourses(mentorCourses);
-          }
-        } catch (err) {
-          console.error('Failed to refresh courses:', err);
-          // Fallback: reload page
-          setTimeout(() => window.location.reload(), 1000);
-        }
-      }
-    } catch (err) {
-      console.error('Error creating course:', err);
-      message.error(`Lỗi: ${err instanceof Error ? err.message : 'Có lỗi xảy ra khi tạo khóa học'}`);
-    } finally {
-      setCreateLoading(false);
-    }
-  };
+  // TODO: Implement these handlers when backend endpoints are ready
+  // const handleApproveJoinRequest = async (requestId: number) => { ... }
+  // const handleRejectJoinRequest = async (requestId: number) => { ... }
+  // const handleApproveTeamCreation = async (requestId: number) => { ... }
+  // const handleRejectTeamCreation = async (requestId: number) => { ... }
 
   if (loading) {
     return (
@@ -196,28 +171,25 @@ const MentorDashboard: React.FC = () => {
     );
   }
 
-  const totalStudents = courses.reduce((sum, course) => sum + (course.enrollmentCount || 0), 0);
-  const totalApproved = courses.reduce((sum, course) => sum + (course.approvedEnrollments || 0), 0);
-  const totalPending = courses.reduce((sum, course) => sum + (course.pendingEnrollments || 0), 0);
-  const totalCompleted = courses.reduce((sum, course) => sum + (course.completedEnrollments || 0), 0);
+  const totalTeams = courses.reduce((sum, course) => sum + (course.totalTeams || 0), 0);
+  const totalMembers = courses.reduce((sum, course) => sum + (course.totalMembers || 0), 0);
+  const averageTeamSize = totalTeams > 0 ? Math.round(totalMembers / totalTeams) : 0;
 
-  const recentActivities = [
-    { id: 1, title: 'Sinh viên Nguyễn Văn A đăng ký lớp CS445', time: '2 giờ trước', type: 'enrollment' },
-    { id: 2, title: 'Phê duyệt đơn đăng ký của Trần Thị B', time: '4 giờ trước', type: 'approval' },
-    { id: 3, title: 'Lớp CS440 hoàn thành 70% chương trình', time: '1 ngày trước', type: 'progress' },
-    { id: 4, title: 'Hạn đăng ký nhóm cho lớp CS435 sắp tới', time: '3 ngày trước', type: 'deadline' },
-  ];
+  const recentActivities = courses.flatMap(course => 
+    course.teams.slice(0, 2).map(team => ({
+      id: `${course.courseId}-${team.id}`,
+      title: `Nhóm "${team.name}" có ${team.members?.length || 0} thành viên trong lớp ${course.code}`,
+      time: 'Gần đây',
+      type: (team.members?.length || 0) >= 6 ? 'full' : 'active' // Assume max 6 members
+    }))
+  ).slice(0, 5);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case 'enrollment':
-        return <UserOutlined style={{ color: '#1890ff' }} />;
-      case 'approval':
-        return <CheckCircleOutlined style={{ color: '#52c41a' }} />;
-      case 'progress':
-        return <TrophyOutlined style={{ color: '#faad14' }} />;
-      case 'deadline':
-        return <ExclamationCircleOutlined style={{ color: '#ff7875' }} />;
+      case 'full':
+        return <TeamOutlined style={{ color: '#ff7875' }} />;
+      case 'active':
+        return <TeamOutlined style={{ color: '#52c41a' }} />;
       default:
         return <FileTextOutlined />;
     }
@@ -291,37 +263,36 @@ const MentorDashboard: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card hoverable>
             <Statistic
-              title="Tổng sinh viên"
-              value={totalStudents}
+              title="Tổng nhóm"
+              value={totalTeams}
               prefix={<TeamOutlined style={{ color: '#52c41a' }} />}
               valueStyle={{ color: '#52c41a', fontSize: '28px' }}
+            />
+            <Text type="secondary" style={{ fontSize: '12px' }}>Các nhóm đang hoạt động</Text>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card hoverable>
+            <Statistic
+              title="Tổng thành viên"
+              value={totalMembers}
+              prefix={<UserOutlined style={{ color: '#faad14' }} />}
+              valueStyle={{ color: '#faad14', fontSize: '28px' }}
               suffix="người"
             />
-            <Text type="secondary" style={{ fontSize: '12px' }}>Đã đăng ký</Text>
+            <Text type="secondary" style={{ fontSize: '12px' }}>Trong tất cả các nhóm</Text>
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
           <Card hoverable>
             <Statistic
-              title="Đã phê duyệt"
-              value={totalApproved}
-              prefix={<CheckCircleOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14', fontSize: '28px' }}
-              suffix={`/ ${totalStudents}`}
+              title="Trung bình"
+              value={averageTeamSize}
+              prefix={<TrophyOutlined style={{ color: '#722ed1' }} />}
+              valueStyle={{ color: '#722ed1', fontSize: '28px' }}
+              suffix="người/nhóm"
             />
-            <Progress percent={totalStudents > 0 ? Math.round((totalApproved / totalStudents) * 100) : 0} size="small" showInfo={false} strokeColor="#faad14" />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card hoverable>
-            <Statistic
-              title="Chờ phê duyệt"
-              value={totalPending}
-              prefix={<ExclamationCircleOutlined style={{ color: '#ff7875' }} />}
-              valueStyle={{ color: '#ff7875', fontSize: '28px' }}
-              suffix={`/ ${totalStudents}`}
-            />
-            <Badge count={totalPending} style={{ backgroundColor: '#ff7875' }} />
+            <Text type="secondary" style={{ fontSize: '12px' }}>Kích thước nhóm TB</Text>
           </Card>
         </Col>
       </Row>
@@ -359,24 +330,24 @@ const MentorDashboard: React.FC = () => {
                           <Space>
                             <TeamOutlined />
                             <Text type="secondary">
-                              {course.enrollmentCount} sinh viên ({course.approvedEnrollments} phê duyệt, {course.pendingEnrollments} chờ)
+                              {course.totalTeams} nhóm với {course.totalMembers} thành viên
                             </Text>
                           </Space>
                           <Space>
                             <CalendarOutlined />
                             <Text type="secondary">
-                              Còn {course.maxStudents - course.currentStudents} chỗ trống
+                              {course.currentStudents}/{course.maxStudents} sinh viên đã đăng ký
                             </Text>
                           </Space>
                           <div>
-                            <Text type="secondary" style={{ fontSize: '12px' }}>Tỉ lệ hoàn thành</Text>
+                            <Text type="secondary" style={{ fontSize: '12px' }}>Tỉ lệ lấp đầy nhóm</Text>
                             <Progress
-                              percent={Math.round((course.completedEnrollments / (course.enrollmentCount || 1)) * 100)}
+                              percent={course.totalTeams > 0 ? Math.round((course.totalMembers / (course.totalTeams * 5)) * 100) : 0}
                               size="small"
                               strokeColor={
-                                course.completedEnrollments >= (course.enrollmentCount * 0.8)
+                                course.totalMembers >= (course.totalTeams * 5 * 0.8)
                                   ? '#52c41a'
-                                  : course.completedEnrollments >= (course.enrollmentCount * 0.5)
+                                  : course.totalMembers >= (course.totalTeams * 5 * 0.5)
                                   ? '#faad14'
                                   : '#1890ff'
                               }
@@ -386,202 +357,63 @@ const MentorDashboard: React.FC = () => {
                       }
                     />
                     <Space>
-                      <Tooltip title="Xem sinh viên">
-                        <Button type="default" icon={<TeamOutlined />} onClick={() => navigate(`/mentor/course/${course.courseId}/students`)}>
-                          Sinh viên
-                        </Button>
-                      </Tooltip>
-                      <Tooltip title="Xem chi tiết">
-                        <Button type="primary" icon={<ArrowRightOutlined />} onClick={() => navigate(`/mentor/course/${course.courseId}`)}>
-                          Chi tiết
+                      <Tooltip title="Quản lý nhóm">
+                        <Button type="primary" icon={<TeamOutlined />} onClick={() => navigate(`/mentor/course/${course.courseId}/teams`)}>
+                          {course.totalTeams} Nhóm
                         </Button>
                       </Tooltip>
                     </Space>
                   </List.Item>
                 )}
               />
-            )}
-          </Card>
-
-          {/* Enrollment Requests */}
-          <Card title={<><CheckCircleOutlined /> Đơn đăng ký chờ phê duyệt</>}>
-            {totalPending > 0 ? (
-              <List
-                dataSource={[
-                  { id: 1, studentName: 'Nguyễn Văn A', courseName: 'Lập trình React', status: 'PENDING' },
-                  { id: 2, studentName: 'Trần Thị B', courseName: 'Thiết kế UI/UX', status: 'PENDING' },
-                ]}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={
-                        <Space>
-                          <Text strong>{item.studentName}</Text>
-                          <Text type="secondary">xin tham gia</Text>
-                          <Text strong>{item.courseName}</Text>
-                        </Space>
-                      }
-                    />
-                    <Space>
-                      <Button type="primary" size="small">
-                        Phê duyệt
-                      </Button>
-                      <Button danger size="small">
-                        Từ chối
-                      </Button>
-                    </Space>
-                  </List.Item>
-                )}
-              />
-            ) : (
-              <Empty description="Không có đơn chờ phê duyệt" />
             )}
           </Card>
         </Col>
 
         {/* Right Column - Activities & Info */}
         <Col xs={24} lg={8}>
+          {/* TODO: Pending request features will be added when backend implements these endpoints:
+               - GET /api/teams/pending-join-requests
+               - GET /api/teams/pending-creation-requests
+               - POST /api/teams/join-request/{id}/approve
+               - POST /api/teams/join-request/{id}/reject
+               - POST /api/teams/creation-request/{id}/approve
+               - POST /api/teams/creation-request/{id}/reject
+          */}
+
           {/* Recent Activities */}
           <Card title={<><ClockCircleOutlined /> Hoạt động gần đây</>} style={{ marginBottom: 16 }}>
-            <Timeline>
-              {recentActivities.map((activity) => (
-                <Timeline.Item key={activity.id} dot={getActivityIcon(activity.type)}>
-                  <Space direction="vertical" size={4}>
-                    <Text>{activity.title}</Text>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                      {activity.time}
-                    </Text>
-                  </Space>
-                </Timeline.Item>
-              ))}
-            </Timeline>
-          </Card>
-
-          {/* Quick Stats */}
-          <Card title={<><TrophyOutlined /> Thống kê</>} style={{ marginBottom: 16 }}>
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <div>
-                <Text type="secondary">Tỉ lệ phê duyệt</Text>
-                <div style={{ marginTop: 8 }}>
-                  <Progress
-                    type="circle"
-                    percent={totalStudents > 0 ? Math.round((totalApproved / totalStudents) * 100) : 0}
-                    width={80}
-                    format={(percent) => `${percent}%`}
-                  />
-                </div>
-              </div>
-              <div style={{ marginTop: 16 }}>
-                <Text type="secondary">Sinh viên hoàn thành</Text>
-                <div style={{ marginTop: 8 }}>
-                  <Progress
-                    type="circle"
-                    percent={totalStudents > 0 ? Math.round((totalCompleted / totalStudents) * 100) : 0}
-                    width={80}
-                    format={(percent) => `${percent}%`}
-                    strokeColor="#52c41a"
-                  />
-                </div>
-              </div>
-            </Space>
+            {recentActivities.length === 0 ? (
+              <Empty description="Chưa có hoạt động nào" />
+            ) : (
+              <Timeline>
+                {recentActivities.map((activity) => (
+                  <Timeline.Item key={activity.id} dot={getActivityIcon(activity.type)}>
+                    <Space direction="vertical" size={4}>
+                      <Text>{activity.title}</Text>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        {activity.time}
+                      </Text>
+                    </Space>
+                  </Timeline.Item>
+                ))}
+              </Timeline>
+            )}
           </Card>
 
           {/* Quick Actions */}
           <Card title="🚀 Thao tác nhanh">
             <Space direction="vertical" style={{ width: '100%' }}>
-              <Button type="primary" block size="large" onClick={() => setCreateModalVisible(true)}>
-                ➕ Tạo khóa học mới
+              <Button block size="large" icon={<TeamOutlined />}>
+                📚 Danh sách khóa học
               </Button>
-              <Button block size="large">
+              <Button block size="large" icon={<BookOutlined />}>
                 📊 Báo cáo chi tiết
-              </Button>
-              <Button block size="large">
-                ⚙️ Cài đặt
               </Button>
             </Space>
           </Card>
         </Col>
       </Row>
-
-      {/* Create Course Modal */}
-      <Modal
-        title="Tạo khóa học mới"
-        open={createModalVisible}
-        onOk={() => createForm.submit()}
-        onCancel={() => setCreateModalVisible(false)}
-        loading={createLoading}
-        width={600}
-      >
-        <Form
-          form={createForm}
-          layout="vertical"
-          onFinish={handleCreateCourse}
-        >
-          <Form.Item
-            label="Mã khóa học"
-            name="code"
-            rules={[{ required: true, message: 'Vui lòng nhập mã khóa học!' }]}
-          >
-            <Input placeholder="VD: CS445" />
-          </Form.Item>
-
-          <Form.Item
-            label="Tên khóa học"
-            name="name"
-            rules={[{ required: true, message: 'Vui lòng nhập tên khóa học!' }]}
-          >
-            <Input placeholder="VD: Lập trình React" />
-          </Form.Item>
-
-          <Form.Item
-            label="Sức chứa tối đa"
-            name="maxStudents"
-            rules={[{ required: true, message: 'Vui lòng nhập sức chứa!' }]}
-          >
-            <InputNumber min={1} max={999} placeholder="VD: 50" />
-          </Form.Item>
-
-          <Form.Item
-            label="Hạn cuối tạo nhóm"
-            name="teamFormationDeadline"
-            rules={[{ required: true, message: 'Vui lòng chọn hạn cuối!' }]}
-          >
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Form.Item
-            label="Trạng thái"
-            name="status"
-            initialValue="UPCOMING"
-          >
-            <Select
-              options={[
-                { label: 'Sắp tới', value: 'UPCOMING' },
-                { label: 'Mở đăng ký', value: 'OPEN' },
-                { label: 'Đang diễn ra', value: 'IN_PROGRESS' },
-              ]}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="ID Chủ đề (Subject ID)"
-            name="subjectId"
-            initialValue={1}
-            rules={[{ required: true, message: 'Vui lòng nhập Subject ID!' }]}
-          >
-            <InputNumber min={1} placeholder="VD: 1" />
-          </Form.Item>
-
-          <Form.Item
-            label="ID Kỳ học (Semester ID)"
-            name="semesterId"
-            initialValue={1}
-            rules={[{ required: true, message: 'Vui lòng nhập Semester ID!' }]}
-          >
-            <InputNumber min={1} placeholder="VD: 1" />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 };

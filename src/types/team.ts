@@ -2,29 +2,59 @@ import type { ApiErrorResponse } from './user';
 
 export type { ApiErrorResponse };
 
+// Match with backend TeamEntity
+export type TeamStatus = 'OPENING' | 'CLOSED' | 'COMPLETED';
+
+// Match backend TeamResponse.TeamMemberResponse
 export interface TeamMember {
+  enrollmentId: number;
   userId: number;
-  fullName: string;
-  email: string;
+  userFullName: string;
+  userEmail: string;
+  isLeader: boolean;
+  majorName?: string;
+  // Legacy fields for compatibility
+  id?: number;
+  fullName?: string;
+  email?: string;
   avatarUrl?: string;
-  role: 'LEADER' | 'MEMBER';
-  joinedAt: string;
+  role?: string;
+  joinedAt?: string;
 }
 
-export interface Team {
-  teamId: number;
+// Match backend TeamResponse.IdeaResponse
+export interface TeamIdea {
+  ideaId: number;
   name: string;
   description?: string;
+  ownerId: number;
+  ownerName: string;
+  isMainIdea: boolean;
+}
+
+// Match exactly with backend TeamResponse
+export interface Team {
+  id: number;
+  name: string;
   courseId: number;
   courseName: string;
-  leaderId: number;
-  leaderName: string;
-  maxMembers: number;
-  currentMembers: number;
+  courseCode: string;
+  semesterId: number;
+  semesterName: string;
+  mentorId?: number;
+  mentorName?: string;
+  memberCount: number;
+  mainIdeaId?: number;
+  mainIdeaName?: string;
   members: TeamMember[];
-  status: 'FORMING' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
-  createdAt: string;
-  updatedAt: string;
+  ideas?: TeamIdea[];
+  
+  // Computed fields for compatibility
+  status?: TeamStatus;
+  leaderId?: number;
+  leaderName?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface TeamResponse {
@@ -57,12 +87,12 @@ export interface JoinTeamResponse {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export function isTeamResponse(response: unknown): response is TeamResponse {
   const res = response as any;
-  return res && res.success === true && res.data && typeof res.data.teamId === 'number';
+  return res && res.success === true && res.data && typeof res.data.id === 'number';
 }
 
 export function isTeamListResponse(response: unknown): response is TeamListResponse {
   const res = response as any;
-  return res && res.success === true && Array.isArray(res.data);
+  return res && typeof res.success === 'boolean' && Array.isArray(res.data);
 }
 
 export function isJoinTeamResponse(response: unknown): response is JoinTeamResponse {

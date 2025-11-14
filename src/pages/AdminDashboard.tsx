@@ -17,6 +17,7 @@ import { MajorManagement } from '../components/MajorManagement';
 import { MentorProfileManagement } from '../components/MentorProfileManagement';
 import { SemesterManagement } from '../components/SemesterManagement';
 import UserManagement from '../components/UserManagement';
+import AdminReportDashboard from './AdminReportDashboard';
 
 const { Sider, Content } = Layout;
 
@@ -24,7 +25,7 @@ type MenuKey = 'dashboard' | 'courses' | 'enrollments' | 'majors' | 'mentors' | 
 
 const AdminDashboard: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedKey, setSelectedKey] = useState<MenuKey>('courses');
+  const [selectedKey, setSelectedKey] = useState<MenuKey>('dashboard');
 
   const menuItems = [
     {
@@ -67,12 +68,7 @@ const AdminDashboard: React.FC = () => {
   const renderContent = () => {
     switch (selectedKey) {
       case 'dashboard':
-        return (
-          <div style={{ padding: '24px', textAlign: 'center' }}>
-            <h2>🎯 Dashboard Tổng quan</h2>
-            <p>Tính năng đang được phát triển...</p>
-          </div>
-        );
+        return <AdminReportDashboard />;
       case 'courses':
         return <CourseManagement />;
       case 'enrollments':
@@ -86,7 +82,7 @@ const AdminDashboard: React.FC = () => {
       case 'users':
         return <UserManagement />;
       default:
-        return <CourseManagement />;
+        return <AdminReportDashboard />;
     }
   };
 

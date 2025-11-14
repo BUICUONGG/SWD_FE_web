@@ -9,6 +9,18 @@ export { courseService, isApiError as isCourseApiError, isCourseResponse, isCour
 export { enrollmentService, isApiError as isEnrollmentApiError } from './enrollmentService';
 export { majorService, isApiError as isMajorApiError } from './majorService';
 
+// Export report service
+export { 
+  reportService, 
+  isApiError as isReportApiError,
+  isDashboardResponse,
+  isStudentReportResponse,
+  isMentorPerformanceResponse,
+  isCourseStatisticsResponse,
+  isTeamStatisticsResponse,
+  isEnrollmentStatisticsResponse
+} from './reportService';
+
 // Note: Feature-specific services (for future use)
 // export { userProfileService } from '../features/users/services/userProfileService';
 // export { studentService } from '../features/student/services/studentService';

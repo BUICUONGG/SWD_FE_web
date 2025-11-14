@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { HomePage, LoginPage, RegisterPage, AdminDashboard, StudentDashboard, StudentCourses, StudentCourseExplorer, StudentClasses, StudentSchedule, StudentGrades, StudentGroups, MentorDashboard, MentorCourseManagement } from '../pages';
+import { HomePage, LoginPage, RegisterPage, AdminDashboard, StudentDashboard, StudentCourses, StudentCourseExplorer, StudentClasses, StudentSchedule, StudentGrades, StudentGroups, StudentGroupDetail, MentorDashboard, MentorTeamManagement } from '../pages';
+import MentorCourseManagement from '../pages/MentorCourseManagement';
 import UserProfile from '../pages/UserProfile';
 import AdminProfile from '../pages/AdminProfile';
 import { AdminProtectedRoute, StudentProtectedRoute, MentorProtectedRoute, PublicRoute } from '../components/ProtectedRoute';
@@ -122,6 +123,14 @@ export const router = createBrowserRouter([
               </StudentProtectedRoute>
             ),
           },
+          {
+            path: "group/:teamId",
+            element: (
+              <StudentProtectedRoute>
+                <StudentGroupDetail />
+              </StudentProtectedRoute>
+            ),
+          },
         ],
       },
       {
@@ -152,10 +161,18 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            path: "course/:courseId/students",
+            path: "course/:courseId/teams",
             element: (
               <MentorProtectedRoute>
-                <MentorCourseManagement />
+                <MentorTeamManagement />
+              </MentorProtectedRoute>
+            ),
+          },
+          {
+            path: "teams/:teamId",
+            element: (
+              <MentorProtectedRoute>
+                <MentorTeamManagement />
               </MentorProtectedRoute>
             ),
           },
